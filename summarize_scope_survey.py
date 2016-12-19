@@ -4,8 +4,6 @@
 # Date: 2016-12-19
 # License: MIT
 
-# Intended as throw-away code.
-
 import argparse
 import math
 import sys
@@ -23,7 +21,8 @@ OVERALL_KEY = (OVERALL_S,)
 parser = argparse.ArgumentParser(description='Create a spreadsheet that summarizes SCOPE P&S results in matrix form.')
 parser.add_argument('-o', '--output', default='SCOPE peer and self reviews.html')
 parser.add_argument('CSV_FILE')
-args = parser.parse_args(['inputs/SCOPE PandS 12.14.16 - STEELE.csv'])
+test_args = (['inputs/SCOPE PandS 12.14.16 - STEELE.csv'],) if 'ipykernel' in sys.modules else ()
+args = parser.parse_args(*test_args)
 
 def resp_fac_to_first_last_name(fullname):
     return ' '.join(reversed(fullname.split(', ', 2)))
