@@ -1,105 +1,77 @@
+import argparse
 import base64
 import itertools
 import hashlib
 import os
 import sys
+import yaml
 from github import Github, GithubException
+from utils import get_file_git_hash, collect_repo_hashes
 
-SKIP_DOWNLOADED = 1
-REPO_LIMIT = 0
-PRINT_SKIPPED = 1
-DONT_SKIP = []
+DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
+ORIGIN_DIRNAME = 'origin'
 
-if 0:
-    DONT_SKIP = ['day14_reading_journal.ipynb']
-    DROPPED_LOGINS = ['rwong3']
-    DST_DIR = 'build/sd16-reading-repos'
-    INSTRUCTOR_LOGINS = ['osteele']
-    SOURCE_REPO = 'sd16fall/ReadingJournal'
-elif 1:
-    INSTRUCTOR_LOGINS = ['osteele', 'lynnandreastein', 'alisonberkowitz']
-    DROPPED_LOGINS = ['DhashS', 'DHZBill']
-    DST_DIR = 'build/focs-hw'
-    SOURCE_REPO = 'focs16fall/focs-assignments'
+parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
+parser.add_argument("--config", default=DEFAULT_CONFIG_FILE, help="YAML configuration file")
+parser.add_argument("--limit", type=int, metavar='N', help="download only the first N repos")
+parser.add_argument("--match", metavar='SUBSTRING', help="download only repos that contains SUBSTRING")
+parser.add_argument("repo", help="source repo")
+test_args = ['softdes']
+args = parser.parse_args(*((test_args,) if 'ipykernel' in sys.modules else ()))
 
-# REPO_LIMIT = 3
+config = {}
+if os.path.exists(args.config) or args.config != DEFAULT_CONFIG_FILE:
+    with open(args.config) as f:
+        config = yaml.load(f)
 
-INSTRUCTOR_LOGINS.append('LucyWilcox')
+repo_config = config.get(args.repo, None) or next((item for item in config.values() if item['source_repo'] == args.repo), None)
 
-gh_token = os.environ['GITHUB_API_TOKEN']
-gh = Github(gh_token)
+DROPPED_LOGINS = repo_config.get('dropped', [])
+DOWNLOAD_PATH = repo_config.get('download_path')
+INSTRUCTOR_LOGINS = repo_config.get('instructors', [])
+SOURCE_REPO = repo_config.get('source_repo', args.repo)
 
-def download_contents(repo, dst_path, master_shas, is_master, src_path='', indent='  '):
-    files = [c for c in repo.get_dir_contents(src_path)]
-    if not files:
-        print('%s: no files' % repo.name, file=sys.stderr)
+GH_TOKEN = os.environ['GITHUB_API_TOKEN']
+gh = Github(GH_TOKEN)
+
+def download_contents(repo, dst_path):
+    commit = repo.get_commits()[0]
+    entries = [item for item in repo.get_git_tree(commit.sha, recursive=True).tree
+               if item.type == 'blob'
+               and item.sha != source_repo_hashes.get(item.path, None)]
+
+    changed_entries = [entry for entry in entries
+                       if entry.sha != get_file_git_hash(os.path.join(dst_path, entry.path), None)]
+
+    if not entries:
+        print("%s: no files" % repo.owner.login)
         return
 
-    for c in files:
-        if c.name == '.DS_Store': continue
+    if not changed_entries:
+        print("%s: no new files" % repo.owner.login)
+        return
 
-        dst_name = os.path.join(dst_path, c.name)
-        if False and len(files) > 1:
-            dst_path + os.path.splitext(c.name)[1]
-
-        if c.type == 'dir':
-            print('%s%s/' % (indent, os.path.join(src_path, c.name)))
-            download_contents(repo, os.path.join(dst_path, c.name), master_shas, is_master, os.path.join(src_path, c.name), indent + '  ')
-            continue
-
-        assert c.type == 'file'
-
-        if is_master:
-            master_shas[src_path] = c.sha
-
-        if os.path.exists(dst_name):
-            if not is_master and c.sha == master_shas.get(src_path):
-                print('%s%s/%s: same as in master; deleting' % (indent, src_path, c.name))
-                os.remove(dst_name)
-                continue
-            if c.sha == file_sha1(dst_name):
-                continue
-            else:
-                print('%s%s: %s != %s' % (indent, c.name, c.sha, file_sha1(dst_name)))
-
-        try:
-            content = c.content
-        except GithubException:
-            if PRINT_SKIPPED: print('%s%ss: skipping (too large)' % (indent, c.name))
-            continue
-
-        print('%s%s (%d bytes)' % (indent, c.name, c.size))
-        os.makedirs(dst_path, exist_ok=True)
+    print("%s:" % repo.owner.login)
+    for entry in changed_entries:
+        print("  %s" % (entry.path))
+        dst_name = os.path.join(dst_path, entry.path)
+        os.makedirs(os.path.dirname(dst_name), exist_ok=True)
+        blob = repo.get_git_blob(entry.url.split('/')[-1])
         with open(dst_name, 'wb') as f:
-            f.write(base64.b64decode(c.content))
-
-def file_sha1(filename):
-    BUF_SIZE = 65536
-    sha1 = hashlib.sha1()
-    sha1.update(('blob %d\0' % os.stat(filename).st_size).encode('utf-8'))
-    with open(filename, 'rb') as f:
-        while True:
-            data = f.read(BUF_SIZE)
-            if not data:
-                break
-            sha1.update(data)
-    return sha1.hexdigest()
+            f.write(base64.b64decode(blob.content))
 
 
-master = gh.get_repo(SOURCE_REPO)
-repos = master.get_forks()
+origin = gh.get_repo(SOURCE_REPO)
+repos = origin.get_forks()
 
-repos = [r for r in repos if r.owner.login not in INSTRUCTOR_LOGINS + DROPPED_LOGINS]
+repos = [repo for repo in repos if repo.owner.login not in INSTRUCTOR_LOGINS + DROPPED_LOGINS]
 repos = sorted(repos, key=lambda r:r.owner.login)
+if args.match: repos = [repo for repo in repos if args.match in repo.owner.login]
+if args.limit: repos = repos[:args.limit]
 
-if REPO_LIMIT:
-    # repos = itertools.islice(repos, REPO_LIMIT)
-    repos = repos[:REPO_LIMIT]
+source_repo_hashes = collect_repo_hashes(origin)
 
-master_shas = {}
-
-for repo in [master] + repos:
+for repo in repos:
     owner = repo.owner
-    print(owner.login)
-    dirname = 'master' if repo is master else owner.login
-    download_contents(repo, os.path.join(DST_DIR, dirname), master_shas, repo == master)
+    dirname = ORIGIN_DIRNAME if repo is origin else owner.login
+    download_contents(repo, os.path.join(DOWNLOAD_PATH, dirname))
