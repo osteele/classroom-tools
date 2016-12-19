@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Author: Oliver Steele
-# Date: 2016-12-14, version 2
+# Date: 2016-12-14, version 3
 # License: MIT
 
 # Intended as throw-away code.
@@ -26,17 +26,24 @@ def resp_fac_to_first_last_name(fullname):
 def row_to_first_last_name(row):
     return ' '.join([row.part_fname, row.part_lname])
 
+def resp_fac_to_name_tuple(surname_comma_firstname):
+    return tuple(reversed(surname_comma_firstname.split(', ', 2)))
+
 def make_df(column_name):
     if isinstance(column_name, int):
         column_name = '_%d' % (1 + column_name)
-    scores = {(row_to_first_last_name(row), resp_fac_to_first_last_name(row.resp_fac)): getattr(row, column_name) or None
+    scores = {((row.part_fname, row.part_lname), resp_fac_to_name_tuple(row.resp_fac)): getattr(row, column_name) or None
               for row in df.itertuples()}
     students = sorted(set(student for student, _ in  scores.keys()))
     evaluatees = sorted(set(student for _, student in scores.keys()))
-    assert students == [student for student in evaluatees if student != '(overall)']
+    assert students == [student for student in evaluatees if student != ('(overall)',)]
     data = [[scores[evaluator, evaluatee] for evaluatee in evaluatees]
             for evaluator in students]
-    return pd.DataFrame(data, columns=evaluatees, index=students).dropna(axis=1, how='all')
+    def unique_names_for(name_tuples):
+        first_names = [first_name for first_name, *_ in name_tuples]
+        return [first_name if first_names.count(first_name) else ' '.join(first_name, *last_names)
+                for first_name, *last_names in name_tuples]
+    return pd.DataFrame(data, columns=unique_names_for(evaluatees), index=unique_names_for(students)).dropna(axis=1, how='all')
 
 df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
 
