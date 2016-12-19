@@ -17,6 +17,9 @@ except ImportError as e:
     sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
     sys.exit(1)
 
+OVERALL_S = '(overall)'
+OVERALL_KEY = (OVERALL_S,)
+
 parser = argparse.ArgumentParser(description='Create a spreadsheet that summarizes SCOPE P&S results in matrix form.')
 parser.add_argument('-o', '--output', default='SCOPE peer and self reviews.html')
 parser.add_argument('CSV_FILE')
@@ -41,46 +44,49 @@ def unique_names_for(name_tuples):
     return [first_name if short_names.count(first_name) == 1 else ' '.join(first_name, *last_names)
             for first_name, *last_names in name_tuples]
 
-OVERALL_S = '(overall)'
-OVERALL_KEY = (OVERALL_S,)
+def isnan(v):
+    return isinstance(v, float) and math.isnan(v)
 
 def survey_question_matrix(df, column_name):
     ratings_t = [((row.part_fname, row.part_lname), resp_fac_to_name_tuple(row.resp_fac), getattr(row, column_name))
                  for row in df.itertuples()]
     ratings_d = {(rater, ratee): rating for rater, ratee, rating in ratings_t}
-    raters = sorted(set(student for student, _, _ in  ratings_t))
-    ratees = sorted(set(student for _, student, _ in ratings_t))
-    assert raters == [student for student in ratees if student != OVERALL_KEY], '%s != %s' % (raters, ratees)
-    # `or None` converts empty string to None, so that `df.dropna` can eliminate it
-    data = [[ratings_d[rater, ratee] or None
-             for ratee in ratees]
-            for rater in raters]
-    return (
-        # `dropna` drops student columns from team questions
-        pd.DataFrame(data, columns=unique_names_for(ratees), index=unique_names_for(raters)).dropna(axis=1, how='all'),
-        # ratings_t
-        {k:v for k, v in ratings_d.items() if not isinstance(v, float) or not math.isnan(v)}
-        )
+    raters = sorted(set(participant for participant, _, _ in  ratings_t))
+    ratees = sorted(set(participant for _, participant, _ in ratings_t))
+    assert raters == [participant for participant in ratees if participant != OVERALL_KEY], '%s != %s' % (raters, ratees)
+    if set(participant for _, participant, v in ratings_t if not isnan(v)) == set([OVERALL_KEY]):
+        return {participant: ratings_d[participant, OVERALL_KEY] for participant in raters}, True
+    else:
+        return {k: None if isnan(v) else v for k, v in ratings_d.items()}, False
 
-df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
+def get_participant_responses(df, participant):
+    responses = [(survey_question, *survey_question_matrix(df, column_name))
+                 for column_name, survey_question in response_columns]
+    overall_responses = [(survey_question, response_matrix[participant])
+                         for survey_question, response_matrix, is_overall_response in responses
+                         if is_overall_response]
+    peer_responses = [(survey_question, response_matrix)
+                      for survey_question, response_matrix, is_overall_response in responses
+                      if not is_overall_response]
+    return overall_responses, peer_responses
 
-first_response_ix = 1 + list(df.columns).index('part_id')
-response_columns = [('_%d' % (1 + i), title) for i, title in enumerate(df.columns) if i >= first_response_ix]
-
-participants = sorted(list(set((row.part_fname, row.part_lname) for row in df.itertuples())))
+survey_df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
+first_response_ix = 1 + list(survey_df.columns).index('part_id')
+response_columns = [('_%d' % (1 + i), title) for i, title in enumerate(survey_df.columns) if i >= first_response_ix]
+participants = sorted(list(set((row.part_fname, row.part_lname) for row in survey_df.itertuples())))
+participant_responses = [(participant, *get_participant_responses(survey_df, participant)) for participant in participants]
 
 HTML_HEADER = """
 <meta charset="UTF-8">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
 <style>
     body { margin: 5pt; }
-    dt { font-style: italic; margin-top: 10pt; }
-    dd { ; }
     section.survey-question { font-style: italic; page-break-inside: avoid; }
+    section.participant::after { page-break-after: always; }
     div.survey-question { font-size: 120% }
+    dt { font-style: italic; margin-top: 10pt; }
     table { width: 90%; margin-left: 20%; }
     th, td { vertical-align: top; }
-    section.participant::after { page-break-after: always; }
 </style>
 """
 
@@ -100,26 +106,16 @@ ParticipantTemplate = Template(PARTICIPANT_TEMPLATE_TEXT)
 
 pd.set_option('display.max_colwidth', -1)  # don't truncate cells
 
-def participant_responses(df, participant):
-    overall_responses = []
-    peer_responses = []
-    for column_name, survey_question in response_columns:
-        dfs, r = survey_question_matrix(df, column_name)
-        if list(dfs.columns) == [OVERALL_S]:
-            response = r[participant, OVERALL_KEY]
-            overall_responses.append((survey_question, response))
-        else:
-            data = [[r.get((participant, p), None), r.get((p, participant), None)] for p in participants]
-            dfs = pd.DataFrame(data, columns=["Rated others", "Rated by others"], index=unique_names_for(participants))
-            peer_responses.append((survey_question, dfs.to_html()))
-    return overall_responses, peer_responses
+def make_df_html(response_matrix):
+    data = [[response_matrix[participant, p], response_matrix[p, participant]] for p in participants]
+    return pd.DataFrame(data, columns=["Rated others", "Rated by others"], index=unique_names_for(participants))
 
-participant_responses = [(participant, *participant_responses(df, participant)) for participant in participants]
-
-with open(args.output, 'w') as f:
-    print(HTML_HEADER, file=f)
+with open(args.output, 'w') as html_report_f:
+    print(HTML_HEADER, file=html_report_f)
     for participant, overall_responses, peer_responses in participant_responses:
+        peer_response_htmls = [(survey_question, make_df_html(response_matrix).to_html())
+                               for survey_question, response_matrix in peer_responses]
         print(ParticipantTemplate.render(participant=unique_name_among(participant, participants),
                                          overall_responses=overall_responses,
-                                                                        peer_responses=peer_responses),
-              file=f)
+                                         peer_responses=peer_response_htmls),
+              file=html_report_f)
