@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 # Author: Oliver Steele
-# Date: 2016-12-14
+# Date: 2016-12-14, version 2
 # License: MIT
+
+# Intended as throw-away code.
 
 import argparse
 import sys
@@ -36,7 +38,7 @@ def make_df(column_name):
             for evaluator in students]
     return pd.DataFrame(data, columns=evaluatees, index=students).dropna(axis=1, how='all')
 
-df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1"); df
+df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
 
 first_response_ix = 1 + list(df.columns).index('part_id')
 
@@ -45,6 +47,6 @@ for i, title in enumerate(df.columns):
     if i >= first_response_ix:
         dfs = make_df(i)
         if len(title) > 31:
-            title = title[:30] + '…'
+            title = title[:31-3] + '...'
         dfs.to_excel(writer, title)
 writer.save()
