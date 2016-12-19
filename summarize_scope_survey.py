@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 # Author: Oliver Steele
-# Date: 2016-12-18
+# Date: 2016-12-19
 # License: MIT
+
+# Intended as throw-away code.
 
 import argparse
 import math
@@ -16,9 +18,9 @@ except ImportError as e:
     sys.exit(1)
 
 parser = argparse.ArgumentParser(description='Create a spreadsheet that summarizes SCOPE P&S results in matrix form.')
-parser.add_argument('-o', '--output', default='SCOPE PandS matrices.xlsx')
+parser.add_argument('-o', '--output', default='SCOPE peer and self reviews.html')
 parser.add_argument('CSV_FILE')
-args = parser.parse_args()
+args = parser.parse_args(['inputs/SCOPE PandS 12.14.16 - STEELE.csv'])
 
 def resp_fac_to_first_last_name(fullname):
     return ' '.join(reversed(fullname.split(', ', 2)))
@@ -65,30 +67,38 @@ df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
 first_response_ix = 1 + list(df.columns).index('part_id')
 response_columns = [('_%d' % (1 + i), title) for i, title in enumerate(df.columns) if i >= first_response_ix]
 
-writer = pd.ExcelWriter(args.output)
-for column_name, title in response_columns:
-    if len(title) > 31:
-        title = title[:31-1] + '\u2026' # ellipsis
-    dfs, _ = survey_question_matrix(df, column_name)
-    dfs.to_excel(writer, title)
-writer.save()
-
 participants = sorted(list(set((row.part_fname, row.part_lname) for row in df.itertuples())))
 
-template1 = Template('<section class="participant"><h1>{{ participant }}</h1>')
-template2 = Template('<section><div class="survey-question">{{ survey_question }}</div><p>{{ response }}</p></section>')
-template3 = Template('<section><div class="survey-question">{{ survey_question }}</div>{{ df|safe }}</section>')
-css = """<meta charset="UTF-8">
+HTML_HEADER = """
+<meta charset="UTF-8">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
 <style>
-section.survey-question { break-inside: avoid; }
-th, td { vertical-align: top; }
-.survey-question { font-size: 120% }
-section.participant::after { page-break-after: always; }
+    body { margin: 5pt; }
+    dt { font-style: italic; margin-top: 10pt; }
+    dd { ; }
+    section.survey-question { font-style: italic; page-break-inside: avoid; }
+    div.survey-question { font-size: 120% }
+    table { width: 90%; margin-left: 20%; }
+    th, td { vertical-align: top; }
+    section.participant::after { page-break-after: always; }
 </style>
 """
 
-pd.set_option('display.max_colwidth', -1)
+PARTICIPANT_TEMPLATE_TEXT = """
+<section class="participant"><h1>{{ participant }}</h1>
+<dl>
+{% for q in overall_responses %}
+<dt>{{ q[0] }}</dt><dd>{{ q[1] }}</dd>
+{% endfor %}
+</dl>
+{% for q in peer_responses %}
+<section class="survey-question"><div class="survey-question">{{ q[0] }}</div>{{ q[1]|safe }}</section>
+{% endfor %}
+</section>
+"""
+ParticipantTemplate = Template(PARTICIPANT_TEMPLATE_TEXT)
+
+pd.set_option('display.max_colwidth', -1)  # don't truncate cells
 
 def participant_responses(df, participant):
     overall_responses = []
@@ -101,15 +111,15 @@ def participant_responses(df, participant):
         else:
             data = [[r.get((participant, p), None), r.get((p, participant), None)] for p in participants]
             dfs = pd.DataFrame(data, columns=["Rated others", "Rated by others"], index=unique_names_for(participants))
-            peer_responses.append((survey_question, dfs))
+            peer_responses.append((survey_question, dfs.to_html()))
     return overall_responses, peer_responses
 
-with open('SCOPE peer and self reviews.html', 'w') as f:
-    print(css, file=f)
-    for participant in participants:
-        overall_responses, peer_responses = participant_responses(df, participant)
-        print(template1.render(participant=unique_name_among(participant, participants)), file=f)
-        for survey_question, response in overall_responses:
-            print(template2.render(survey_question=survey_question, response=response), file=f)
-        for survey_question, response_df in peer_responses:
-            print(template3.render(survey_question=survey_question, df=response_df.to_html()), file=f)
+participant_responses = [(participant, *participant_responses(df, participant)) for participant in participants]
+
+with open(args.output, 'w') as f:
+    print(HTML_HEADER, file=f)
+    for participant, overall_responses, peer_responses in participant_responses:
+        print(ParticipantTemplate.render(participant=unique_name_among(participant, participants),
+                                         overall_responses=overall_responses,
+                                                                        peer_responses=peer_responses),
+              file=f)
