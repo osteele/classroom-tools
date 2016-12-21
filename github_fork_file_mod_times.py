@@ -30,6 +30,8 @@ GITHUB_API_TOKEN = os.environ.get('GITHUB_API_TOKEN', None)
 if not GITHUB_API_TOKEN:
     print("warning: GITHUB_API_TOKEN is not defined. API calls are rate-limited.", file=sys.stderr)
 
+OUTPUT_FILE = "%s file times.csv" % re.sub(r'[./]', ' ', args.repo)
+
 gh = Github(GITHUB_API_TOKEN)
 
 with open(args.config) as f:
@@ -68,14 +70,13 @@ def get_repo_file_commit_mod_times(repo):
                       for file in commit.files}
     return [(repo.owner.login, *data) for data in file_mod_times.items()]
 
-student_file_mods = [item
-                      for repo_file_commit_mod_times in map(get_repo_file_commit_mod_times, student_repos)
-                      for item in repo_file_commit_mod_times]
-student_file_mods
+student_file_mod_times = [item
+                          for repo_file_commit_mod_times in map(get_repo_file_commit_mod_times, student_repos)
+                          for item in repo_file_commit_mod_times]
+student_file_mod_times
 
 # def exercise_group(filename):
 #     return os.path.dirname(filename) or filename
-
 
 ## File hashes
 
@@ -85,11 +86,7 @@ def collect_repo_file_hashes(repo):
     return {tree.path: tree.sha
             for tree in repo.get_git_tree(latest_commit.sha, recursive=True).tree}
 
-master_file_hashes = collect_repo_file_hashes(source_repo)
-master_file_hashes
-
-# pd.DataFrame(list(master_file_hashes.values()), index=master_file_hashes.keys(), columns=['hash'])
-
+master_file_hashes = collect_repo_file_hashes(source_repo); master_file_hashes
 
 # Build a table of hashes of all the student files, to test for duplicates against the source
 
@@ -102,21 +99,15 @@ student_file_hashes = {(repo.owner.login, filename): git_hash
                        for filename, git_hash in file_hashes.items()}
 student_file_hashes
 
-filtered_student_file_mods = \
-    [(login, filename, mod_time) for login, filename, mod_time in student_file_mods
+student_file_records = \
+    [(login, filename, mod_time) for login, filename, mod_time in student_file_mod_times
      if student_file_hashes.get((login, filename), 1) != master_file_hashes.get(filename, None)
      and not re.match(IGNORE_FILES_RE, filename)]
 
 def filename_sort_key(f):
     return tuple(int(s) if re.match(r'\d+', s) else s for s in re.split(r'(\d+)', f))
 
-student_names = sorted(set(student for student, *_ in filtered_student_file_mods), key=str.lower)
-filenames = sorted(set(filename for _, filename, *_ in filtered_student_file_mods if not re.match(IGNORE_FILES_RE, filename)), key=filename_sort_key)
-filenames
-
-data = [[next((d for s, f, d in filtered_student_file_mods if s == student and f == filename), None)
-          for student in student_names]
-         for filename in filenames]
-df = pd.DataFrame(data, index=filenames, columns=student_names)
-df.to_csv('reading journal times.csv')
-df
+df = pd.DataFrame(student_file_records, columns=['student', 'file', 'mod_time']).pivot(index='student', columns='file', values='mod_time')
+df = df.reindex_axis(sorted(df.columns, key=filename_sort_key), axis=1)
+df.to_csv(OUTPUT_FILE)
+df.head()
