@@ -15,11 +15,12 @@ except ImportError as e:
     sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
     sys.exit(1)
 
+if 'ipykernel' in sys.modules: sys.argv = ['script', 'downloads/SCOPE PandS 12.14.16 - STEELE.csv']
+
 parser = argparse.ArgumentParser(description='Create a spreadsheet that summarizes SCOPE P&S results in matrix form.')
 parser.add_argument('-o', '--output', default='SCOPE peer and self reviews.html')
 parser.add_argument('CSV_FILE')
-test_args = (['inputs/SCOPE PandS 12.14.16 - STEELE.csv'],) if 'ipykernel' in sys.modules else ()
-args = parser.parse_args(*test_args)
+args = parser.parse_args(sys.argv[1:])
 
 def create_unique_names_map(entities, short_key_fn=lambda seq:seq[0], long_key_fn=lambda seq:' '.join(seq)):
     short_names = list(map(short_key_fn, entities))
@@ -36,10 +37,26 @@ part_name_dict = {row.part_uname: row.part_name for row in df[['part_uname', 'pa
 df['eval_name'] = df['eval_uname'].map(part_name_dict)
 
 first_response_ix = 1 + list(df.columns).index('part_id')
-df2 = df.drop(set(df.columns[:first_response_ix]) - set(['part_name']), axis=1)
+responses_df = df.drop(set(df.columns[:first_response_ix]) - set(['part_name']), axis=1)
 
-overall_responses = df2.loc[df['resp_fac'] == '(overall)'].set_index('part_name').dropna(axis=1).select_dtypes(exclude=[int])
-peer_responses = df2.loc[df['resp_fac'] != '(overall)'].set_index(['part_name', 'eval_name']).dropna(axis=1)
+overall_responses = responses_df.loc[df['resp_fac'] == '(overall)'].set_index('part_name').dropna(axis=1).select_dtypes(exclude=[int])
+peer_responses = responses_df.loc[df['resp_fac'] != '(overall)'].set_index(['part_name', 'eval_name']).dropna(axis=1)
+
+rated_other = peer_responses.copy()
+rated_other.index.names = ['self', 'Teammate']
+rated_other.columns = [['This person rated teammates'] * len(rated_other.columns), rated_other.columns]
+rated_other
+
+rated_by = peer_responses.copy()
+rated_by.index.names = ['Teammate', 'self']
+rated_by = rated_by.reorder_levels([-1, -2], axis=0)
+rated_by.columns = [['This person rated by teammates'] * len(rated_by.columns), rated_by.columns]
+rated_by
+
+nested_peer_responses = pd.concat([rated_by, rated_other], axis=1)
+nested_peer_responses.columns = nested_peer_responses.columns.swaplevel(0, 1)
+nested_peer_responses.sortlevel(0, axis=1, inplace=True)
+nested_peer_responses
 
 HTML_HEADER = """
 <meta charset="UTF-8">
@@ -50,7 +67,7 @@ HTML_HEADER = """
     section.participant::after { page-break-after: always; }
     div.survey-question { font-size: 120% }
     dt { font-style: italic; margin-top: 10pt; }
-    table { width: 90%; margin-left: 20%; }
+    table { margin-left: 25pt; }
     th, td { vertical-align: top; }
 </style>
 """
@@ -64,7 +81,7 @@ PARTICIPANT_TEMPLATE_TEXT = """
         {% endfor %}
     </dl>
     {% for q, a in peer_responses %}
-        <section class="survey-question"><div class="survey-question">{{ q }}</div>{{ a|dataframe }}</section>
+        <section class="survey-question"><div class="survey-question">{{ q }}</div>{{ a|dataframe(max_cols=2) }}</section>
     {% endfor %}
 </section>
 """
@@ -73,17 +90,10 @@ env = Environment()
 env.filters['dataframe'] = lambda df, **kwargs:df.to_html(**kwargs)
 ParticipantTemplate = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
 
-def make_peer_df(part_name, col_name):
-    p1 = peer_responses.xs(part_name, level='part_name')
-    p2 = peer_responses.xs(part_name, level='eval_name')
-    df = pd.DataFrame([p1[col_name].rename('Rated'), p2[col_name].rename('Rated by')]).T.replace(0, '')
-    df.index.name = 'other'
-    return df
-
 with open(args.output, 'w') as report_file:
     report_file.write(HTML_HEADER)
     for part_name in sorted(participant_name_map.values()):
-        peer_response_records = [(survey_question, make_peer_df(part_name, survey_question))
+        peer_response_records = [(survey_question, nested_peer_responses.loc[part_name][survey_question])
                                  for survey_question in peer_responses.columns]
         report_file.write(ParticipantTemplate.render(participant_name=part_name,
                                                      overall_responses=overall_responses.loc[part_name].iteritems(),
