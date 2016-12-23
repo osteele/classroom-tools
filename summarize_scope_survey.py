@@ -35,10 +35,14 @@ df
 
 first_response_ix = 1 + list(df.columns).index('part_id')
 responses_df = df.drop(df.columns[:first_response_ix], axis=1)
-responses_df
+responses_df['has_peer'] = responses_df.apply(lambda row: pd.notnull(row.eval_name), axis=1)
+responses_df.set_index(['has_peer', 'part_name', 'eval_name'], inplace=True)
 
-overall_responses = responses_df.loc[pd.isnull(df['eval_name'])].set_index(['part_name']).drop(['eval_name'], axis=1).dropna(axis=1).select_dtypes(exclude=[int])
-peer_responses = responses_df.loc[pd.notnull(df['eval_name'])].set_index(['part_name', 'eval_name']).dropna(axis=1)
+overall_responses = responses_df.loc[False].reset_index(level=1, drop=True).dropna(axis=1).select_dtypes(exclude=[int])
+overall_responses
+
+peer_responses = responses_df.loc[True].dropna(axis=1)
+peer_responses
 
 rated_other = peer_responses.copy()
 rated_other.index.names = ['self', 'Teammate']
@@ -46,10 +50,12 @@ rated_other.columns = [['This person rated teammates'] * len(rated_other.columns
 rated_other
 
 rated_by = peer_responses.copy()
-rated_by.index.names = ['Teammate', 'self']
+rated_by.index.names = rated_other.index.names[::-1]
 rated_by = rated_by.reorder_levels([-1, -2], axis=0)
 rated_by.columns = [['This person rated by teammates'] * len(rated_by.columns), rated_by.columns]
 rated_by
+
+# self_reviews = rated_by.loc[pd.Series([a==b for a, b in rated_by.index], rated_by.index)]
 
 nested_peer_responses = pd.concat([rated_by, rated_other], axis=1)
 nested_peer_responses.columns = nested_peer_responses.columns.swaplevel(0, 1)
