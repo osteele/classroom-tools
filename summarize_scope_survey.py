@@ -22,25 +22,23 @@ parser.add_argument('-o', '--output', default='SCOPE peer and self reviews.html'
 parser.add_argument('CSV_FILE')
 args = parser.parse_args(sys.argv[1:])
 
-def create_unique_names_map(entities, short_key_fn=lambda seq:seq[0], long_key_fn=lambda seq:' '.join(seq)):
-    short_names = list(map(short_key_fn, entities))
-    return {entity: short_key if short_names.count(short_key) == 1 else long_key_fn(entity)
-            for entity, short_key in ((entity, short_key_fn(entity)) for entity in entities)}
-
 df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
 
 participant_tuples = set(zip(df['part_fname'], df['part_lname']))
-participant_name_map = create_unique_names_map(participant_tuples)
+short_names = [first for first, _ in participant_tuples]
+participant_name_map = {name: name[0] if short_names.count(name[0]) == 1 else ' '.join(name) for name in participant_tuples}
 df['part_name'] = df.apply(lambda row: (row.part_fname, row.part_lname), axis=1).map(participant_name_map)
 
 part_name_dict = {row.part_uname: row.part_name for row in df[['part_uname', 'part_name']].itertuples()}
 df['eval_name'] = df['eval_uname'].map(part_name_dict)
+df
 
 first_response_ix = 1 + list(df.columns).index('part_id')
-responses_df = df.drop(set(df.columns[:first_response_ix]) - set(['part_name']), axis=1)
+responses_df = df.drop(df.columns[:first_response_ix], axis=1)
+responses_df
 
-overall_responses = responses_df.loc[df['resp_fac'] == '(overall)'].set_index('part_name').dropna(axis=1).select_dtypes(exclude=[int])
-peer_responses = responses_df.loc[df['resp_fac'] != '(overall)'].set_index(['part_name', 'eval_name']).dropna(axis=1)
+overall_responses = responses_df.loc[pd.isnull(df['eval_name'])].set_index(['part_name']).drop(['eval_name'], axis=1).dropna(axis=1).select_dtypes(exclude=[int])
+peer_responses = responses_df.loc[pd.notnull(df['eval_name'])].set_index(['part_name', 'eval_name']).dropna(axis=1)
 
 rated_other = peer_responses.copy()
 rated_other.index.names = ['self', 'Teammate']
