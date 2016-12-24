@@ -43,26 +43,26 @@ responses_df
 overall_responses = responses_df.loc[False].reset_index(level=[0,2], drop=True).dropna(axis=1).select_dtypes(exclude=[int])
 overall_responses
 
-self_responses = responses_df.loc[True].loc[True].reset_index(level=0, drop=True).dropna(axis=1)
+self_reviews = responses_df.loc[True].loc[True].reset_index(level=0, drop=True).dropna(axis=1)
 
-peer_responses = responses_df.loc[True].loc[False].dropna(axis=1)
-peer_responses
+peer_reviews = responses_df.loc[True].loc[False].dropna(axis=1)
+peer_reviews
 
-rated_other = peer_responses.copy()
-rated_other.index.names = ['self', 'Teammate']
-rated_other.columns = [['This person rated teammates'] * len(rated_other.columns), rated_other.columns]
-rated_other
+reviews_of_others = peer_reviews.copy()
+reviews_of_others.index.names = ['self', 'Teammate']
+reviews_of_others.columns = [['This person rated teammates'] * len(reviews_of_others.columns), reviews_of_others.columns]
+reviews_of_others
 
-rated_by = peer_responses.copy()
-rated_by.index.names = rated_other.index.names[::-1]
-rated_by = rated_by.reorder_levels([-1, -2], axis=0)
-rated_by.columns = [['This person rated by teammates'] * len(rated_by.columns), rated_by.columns]
-rated_by
+reviews_by_others = peer_reviews.copy()
+reviews_by_others.index.names = reviews_of_others.index.names[::-1]
+reviews_by_others = reviews_by_others.reorder_levels([-1, -2], axis=0)
+reviews_by_others.columns = [['This person rated by teammates'] * len(reviews_by_others.columns), reviews_by_others.columns]
+reviews_by_others
 
-nested_peer_responses = pd.concat([rated_by, rated_other], axis=1)
-nested_peer_responses.columns = nested_peer_responses.columns.swaplevel(0, 1)
-nested_peer_responses.sortlevel(0, axis=1, inplace=True)
-nested_peer_responses
+nested_peer_reviews = pd.concat([reviews_by_others, reviews_of_others], axis=1)
+nested_peer_reviews.columns = nested_peer_reviews.columns.swaplevel(0, 1)
+nested_peer_reviews.sortlevel(0, axis=1, inplace=True)
+nested_peer_reviews
 
 HTML_HEADER = """
 <meta charset="UTF-8">
@@ -73,8 +73,8 @@ HTML_HEADER = """
     dt { margin-top: 10pt; font-weight: bold; }
     th { font-weight: normal; font-style: italic; }
     th, td { vertical-align: top; padding: 2pt; }
-    div.rated-self { margin-top: 5pt; }
-    span.rated-self-label { padding-right: 5pt; font-style: italic; }
+    div.self-review { margin-top: 5pt; }
+    span.label { padding-right: 5pt; font-style: italic; }
 </style>
 """
 
@@ -85,11 +85,14 @@ PARTICIPANT_TEMPLATE_TEXT = """
             <dt>{{ q }}</dt>
             <dd>{{ a }}</dd>
         {% endfor %}
-        {% for q, a, s in peer_responses %}
+        {% for q in peer_survey_questions %}
             <dt>{{ q }}</dt>
             <dd>
-                {{ a|dataframe(max_cols=2) }}
-                <div class="rated-self"><span class="rated-self-label">Self:</span> {{ s }}</div>
+                {{ peer_reviews[q] | dataframe(max_cols=2) }}
+                <div class="self-review">
+                    <span class="label">Self:</span>
+                    {{ self_reviews[q] }}
+                 </div>
             </dd>
         {% endfor %}
     </dl>
@@ -103,10 +106,8 @@ ParticipantTemplate = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
 with open(args.output, 'w') as report_file:
     report_file.write(HTML_HEADER)
     for part_name in sorted(participant_name_map.values()):
-        peer_response_records = [(survey_question,
-                                  nested_peer_responses.loc[part_name][survey_question],
-                                  self_responses.loc[part_name][survey_question])
-                                 for survey_question in peer_responses.columns]
         report_file.write(ParticipantTemplate.render(participant_name=part_name,
                                                      overall_responses=overall_responses.loc[part_name].iteritems(),
-                                                     peer_responses=peer_response_records))
+                                                     peer_survey_questions=peer_reviews.columns,
+                                                     peer_reviews=nested_peer_reviews.loc[part_name],
+                                                     self_reviews=self_reviews.loc[part_name]))
