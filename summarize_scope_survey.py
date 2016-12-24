@@ -88,7 +88,7 @@ PARTICIPANT_TEMPLATE_TEXT = """
         {% for q in peer_survey_questions %}
             <dt>{{ q }}</dt>
             <dd>
-                {{ peer_reviews[q] | dataframe(max_cols=2) }}
+                {{ peer_reviews[q] | dataframe }}
                 <div class="self-review">
                     <span class="label">Self:</span>
                     {{ self_reviews[q] }}
@@ -99,15 +99,23 @@ PARTICIPANT_TEMPLATE_TEXT = """
 </section>
 """
 
+def dataframe_filter(df, **kwargs):
+    saved_max_colwidth = pd.get_option('display.max_colwidth')
+    try:
+        pd.set_option('display.max_colwidth', -1)
+        return df.to_html(**kwargs)
+    finally:
+        pd.set_option('display.max_colwidth', saved_max_colwidth)
+
 env = Environment()
-env.filters['dataframe'] = lambda df, **kwargs:df.to_html(**kwargs)
-ParticipantTemplate = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
+env.filters['dataframe'] = dataframe_filter
+participant_template = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
 
 with open(args.output, 'w') as report_file:
     report_file.write(HTML_HEADER)
     for part_name in sorted(participant_name_map.values()):
-        report_file.write(ParticipantTemplate.render(participant_name=part_name,
-                                                     overall_responses=overall_responses.loc[part_name].iteritems(),
-                                                     peer_survey_questions=peer_reviews.columns,
-                                                     peer_reviews=nested_peer_reviews.loc[part_name],
-                                                     self_reviews=self_reviews.loc[part_name]))
+        report_file.write(participant_template.render(participant_name=part_name,
+                                                      overall_responses=overall_responses.loc[part_name].iteritems(),
+                                                      peer_survey_questions=peer_reviews.columns,
+                                                      peer_reviews=nested_peer_reviews.loc[part_name],
+                                                      self_reviews=self_reviews.loc[part_name]))
