@@ -64,9 +64,13 @@ nested_peer_reviews.columns = nested_peer_reviews.columns.swaplevel(0, 1)
 nested_peer_reviews.sortlevel(0, axis=1, inplace=True)
 nested_peer_reviews
 
-HTML_HEADER = """
+HTML_HEADER = """\
+<!DOCTYPE html>
+<html>
+<head>
 <meta charset="UTF-8">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+<title>SCOPE Self and Peer Survey Report</title>
 <style>
     body { margin: 5pt; }
     section.participant::after { page-break-after: always; }
@@ -76,7 +80,11 @@ HTML_HEADER = """
     div.self-review { margin-top: 5pt; }
     span.label { padding-right: 5pt; font-style: italic; }
 </style>
+</head>
+<body>
 """
+
+HTML_FOOTER = "</body></html>"
 
 PARTICIPANT_TEMPLATE_TEXT = """
 <section class="participant"><h1>{{ participant_name }}</h1>
@@ -119,3 +127,4 @@ with open(args.output, 'w') as report_file:
                                                       peer_survey_questions=peer_reviews.columns,
                                                       peer_reviews=nested_peer_reviews.loc[part_name],
                                                       self_reviews=self_reviews.loc[part_name]))
+    report_file.write(HTML_FOOTER)
