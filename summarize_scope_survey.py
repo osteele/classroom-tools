@@ -82,9 +82,9 @@ peer_review_df
 # concatenate them.
 
 review_others_df = peer_review_df.copy()
-review_others_df.index.names = ['self', "Teammate"]
+review_others_df.index.names = ['self', None]
 # Add a top-level index:
-review_others_df.columns = [["This person rated teammates"] * len(review_others_df.columns), review_others_df.columns]
+review_others_df.columns = [["This person rated person on this row"] * len(review_others_df.columns), review_others_df.columns]
 review_others_df
 
 # review_others_df renamed part_{short,long}_name -> {self,Teammate}.
@@ -94,7 +94,7 @@ reviews_by_others_df = peer_review_df.copy()
 reviews_by_others_df.index.names = review_others_df.index.names[::-1]
 reviews_by_others_df = reviews_by_others_df.reorder_levels([-1, -2], axis=0)
 # Add a top-level index:
-reviews_by_others_df.columns = [["This person rated by teammates"] * len(reviews_by_others_df.columns), reviews_by_others_df.columns]
+reviews_by_others_df.columns = [["This person rated by person on this row"] * len(reviews_by_others_df.columns), reviews_by_others_df.columns]
 reviews_by_others_df
 
 nested_peer_review_df = pd.concat([reviews_by_others_df, review_others_df], axis=1)
@@ -153,12 +153,13 @@ def dataframe_filter(df, **kwargs):
     """A Jinja filter that turns a Pandas DataFrame into HTML, with the specified options and with
     the Pandas display option temporarily set to allow full-width text in the cells."""
 
-    saved_max_colwidth = pd.get_option('display.max_colwidth')
+    display_max_colwidth_key = 'display.max_colwidth'
+    saved_max_colwidth = pd.get_option(display_max_colwidth_key)
     try:
-        pd.set_option('display.max_colwidth', -1)
+        pd.set_option(display_max_colwidth_key, -1)
         return df.to_html(**kwargs)
     finally:
-        pd.set_option('display.max_colwidth', saved_max_colwidth)
+        pd.set_option(display_max_colwidth_key, saved_max_colwidth)
 
 env.filters['dataframe'] = dataframe_filter
 
