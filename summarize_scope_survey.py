@@ -6,7 +6,7 @@
 import argparse
 import math
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 try:
     from jinja2 import Environment
@@ -25,8 +25,8 @@ args = parser.parse_args(sys.argv[1:])
 df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
 
 participant_tuples = set(zip(df['part_fname'], df['part_lname']))
-short_names = [first for first, _ in participant_tuples]
-participant_name_map = {name: name[0] if short_names.count(name[0]) == 1 else ' '.join(name) for name in participant_tuples}
+short_name_count = Counter(first for first, _ in participant_tuples)
+participant_name_map = {name: name[0] if short_name_count[name[0]] == 1 else ' '.join(name) for name in participant_tuples}
 df['part_name'] = df.apply(lambda row: (row.part_fname, row.part_lname), axis=1).map(participant_name_map)
 
 part_name_dict = {row.part_uname: row.part_name for row in df[['part_uname', 'part_name']].itertuples()}
