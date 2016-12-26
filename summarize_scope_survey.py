@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 
-# Author: Oliver Steele
-# License: MIT
+"Create an HTML report from a SCOPE P&S survey."
+
+__author__ = "Oliver Steele"
+__copyright__ = "Copyright 2016, Olin College"
+__license__ = "MIT"
+
+# Code conventions:
+# - "double quotes" for strings that appear in the output
+# - single-variable lines are for development in Hydrogen
 
 import argparse
 import math
@@ -19,7 +26,7 @@ except ImportError as e:
 if 'ipykernel' in sys.modules:
     sys.argv = ['script', 'tests/files/SCOPE PandS test.csv', '-o', 'tests/outputs/SCOPE PandS.html']
 
-parser = argparse.ArgumentParser(description="Create a spreadsheet that summarizes SCOPE P&S results in matrix form.")
+parser = argparse.ArgumentParser(description="Create an HTML report from a SCOPE P&S survey.")
 parser.add_argument('-o', '--output')
 parser.add_argument('CSV_FILE')
 args = parser.parse_args(sys.argv[1:])
@@ -28,20 +35,32 @@ args.output = args.output or os.path.splitext(args.CSV_FILE)[0] + '.html'
 
 df = pd.DataFrame.from_csv(args.CSV_FILE, encoding='ISO-8859-1')
 
+# part_short_name: participant's first name if that's uniquely identifying, else their full name
 part_name_pairs = set(zip(df.part_fname, df.part_lname))
 short_name_count = Counter(first for first, _ in part_name_pairs)
 part_tuple_names = {name: name[0] if short_name_count[name[0]] == 1 else ' '.join(name) for name in part_name_pairs}
 df['part_short_name'] = df.apply(lambda row: (row.part_fname, row.part_lname), axis=1).map(part_tuple_names)
 
-df['eval_name'] = df.eval_uname.map(dict(zip(df.part_uname, df.part_short_name)))
-df['self_eval'] = df.part_short_name == df.eval_name
+# eval_short_name; short name of the evaluatee
+# self_eval: True for a peer-response question where the participant is evaluating themeself
+df['eval_short_name'] = df.eval_uname.map(dict(zip(df.part_uname, df.part_short_name)))
+df['self_eval'] = df.part_short_name == df.eval_short_name
 df
 
+# drop columns up to and including part_id. This leaves only survey questions, and the columns added above
 first_response_ix = 1 + list(df.columns).index('part_id')
 response_df = df.drop(df.columns[:first_response_ix], axis=1)
-response_df['has_peer'] = pd.notnull(response_df['eval_name'])
-response_df.set_index(['has_peer', 'self_eval', 'part_short_name', 'eval_name'], inplace=True)
+response_df['has_peer'] = pd.notnull(response_df['eval_short_name'])
+response_df.set_index(['has_peer', 'self_eval', 'part_short_name', 'eval_short_name'], inplace=True)
 response_df
+
+# Separate df into three dataframes:
+# - overall_response_df
+# - self_review_df (peer-review responses evaluating self)
+# - peer_review_df (peer-review responses evaluating others)
+#
+# These are separate dataframes because the first has different columns, and they second two have different indices
+# from each other.
 
 overall_response_df = response_df.loc[False].reset_index(level=[0,2], drop=True).dropna(axis=1).select_dtypes(exclude=[int])
 overall_response_df
@@ -54,6 +73,9 @@ review_others_df = peer_review_df.copy()
 review_others_df.index.names = ['self', "Teammate"]
 review_others_df.columns = [["This person rated teammates"] * len(review_others_df.columns), review_others_df.columns]
 review_others_df
+
+# Create a new df nested_peer_review_df. This has a two-level column index, that divides it into reviews *by*
+# others and reviews *of* others. Construct these as separate dataframes, and combine them into nested_peer_review_df.
 
 reviews_by_others_df = peer_review_df.copy()
 reviews_by_others_df.index.names = review_others_df.index.names[::-1]
@@ -109,7 +131,12 @@ PARTICIPANT_TEMPLATE_TEXT = """\
 </section>
 """
 
+env = Environment()
+
 def dataframe_filter(df, **kwargs):
+    """A Jinja filter that turns a Pandas DataFrame into HTML, with the specified options and with
+    the Pandas display option temporarily set to allow full-width text in the cells."""
+
     saved_max_colwidth = pd.get_option('display.max_colwidth')
     try:
         pd.set_option('display.max_colwidth', -1)
@@ -117,8 +144,8 @@ def dataframe_filter(df, **kwargs):
     finally:
         pd.set_option('display.max_colwidth', saved_max_colwidth)
 
-env = Environment()
 env.filters['dataframe'] = dataframe_filter
+
 participant_template = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
 
 with open(args.output, 'w') as report_file:
