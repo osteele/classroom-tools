@@ -5,6 +5,7 @@
 
 import argparse
 import math
+import os
 import sys
 from collections import Counter, defaultdict
 
@@ -15,12 +16,15 @@ except ImportError as e:
     sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
     sys.exit(1)
 
-if 'ipykernel' in sys.modules: sys.argv = ['script', 'downloads/SCOPE PandS 12.14.16 - STEELE.csv']
+if 'ipykernel' in sys.modules:
+    sys.argv = ['script', 'tests/files/SCOPE PandS test.csv', '-o', 'tests/outputs/SCOPE PandS.html']
 
 parser = argparse.ArgumentParser(description='Create a spreadsheet that summarizes SCOPE P&S results in matrix form.')
-parser.add_argument('-o', '--output', default='SCOPE peer and self reviews.html')
+parser.add_argument('-o', '--output')
 parser.add_argument('CSV_FILE')
 args = parser.parse_args(sys.argv[1:])
+
+args.output = args.output or os.path.splitext(args.CSV_FILE)[0] + '.html'
 
 df = pd.DataFrame.from_csv(args.CSV_FILE, encoding="ISO-8859-1")
 
@@ -128,3 +132,4 @@ with open(args.output, 'w') as report_file:
                                                       peer_reviews=nested_peer_reviews.loc[part_name],
                                                       self_reviews=self_reviews.loc[part_name]))
     report_file.write(HTML_FOOTER)
+print('Wrote', args.output)
