@@ -33,7 +33,8 @@ args = parser.parse_args(sys.argv[1:])
 
 args.output = args.output or os.path.splitext(args.CSV_FILE)[0] + '.html'
 
-df = pd.DataFrame.from_csv(args.CSV_FILE, encoding='ISO-8859-1')
+df = pd.DataFrame.from_csv(args.CSV_FILE, encoding='ISO-8859-1', index_col=None)
+survey_name = df.surveyname[0]
 
 # part_short_name: participant's first name if that's uniquely identifying, else their full name
 part_name_pairs = set(zip(df.part_fname, df.part_lname))
@@ -88,13 +89,15 @@ nested_peer_review_df.columns = nested_peer_review_df.columns.swaplevel(0, 1)
 nested_peer_review_df.sortlevel(0, axis=1, inplace=True)
 nested_peer_review_df
 
+# Templates are inline, in order to make it possible to distribute this script as a single file.
+
 HTML_HEADER = """\
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
-<title>SCOPE Self and Peer Survey Report</title>
+<title>{{ survey_name }}</title>
 <style>
     body { margin: 5pt; }
     section.participant::after { page-break-after: always; }
@@ -149,7 +152,7 @@ env.filters['dataframe'] = dataframe_filter
 participant_template = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
 
 with open(args.output, 'w') as report_file:
-    report_file.write(HTML_HEADER)
+    report_file.write(env.from_string(HTML_HEADER).render(survey_name=survey_name))
     for part_short_name in sorted(list(set(df.part_short_name))):
         report_file.write(participant_template.render(participant_name=part_short_name,
                                                       overall_responses=overall_response_df.loc[part_short_name].iteritems(),
