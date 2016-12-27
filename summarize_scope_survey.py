@@ -22,7 +22,7 @@ try:
     from jinja2 import Environment
     import pandas as pd
 except ImportError as e:
-    sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
+    sys.stderr.write("%s. Try running pip install %s" % (e, e.name))
     sys.exit(1)
 
 # Hydrogen development
@@ -84,7 +84,7 @@ peer_review_df
 review_others_df = peer_review_df.copy()
 review_others_df.index.names = ['self', None]
 # Add a top-level index:
-review_others_df.columns = [["This person rated person on this row"] * len(review_others_df.columns), review_others_df.columns]
+review_others_df.columns = [["Rated teammates"] * len(review_others_df.columns), review_others_df.columns]
 review_others_df
 
 # review_others_df renamed part_{short,long}_name -> {self,Teammate}.
@@ -94,7 +94,7 @@ reviews_by_others_df = peer_review_df.copy()
 reviews_by_others_df.index.names = review_others_df.index.names[::-1]
 reviews_by_others_df = reviews_by_others_df.reorder_levels([-1, -2], axis=0)
 # Add a top-level index:
-reviews_by_others_df.columns = [["This person rated by person on this row"] * len(reviews_by_others_df.columns), reviews_by_others_df.columns]
+reviews_by_others_df.columns = [["Rated by teammates"] * len(reviews_by_others_df.columns), reviews_by_others_df.columns]
 reviews_by_others_df
 
 nested_peer_review_df = pd.concat([reviews_by_others_df, review_others_df], axis=1)
@@ -113,21 +113,27 @@ HTML_HEADER = """\
 <title>{{ survey_name }}</title>
 <style>
     body { margin: 5pt; }
-    section.participant::after { page-break-after: always; }
-    dt { margin-top: 10pt; font-weight: bold; }
+    section.participant { page-break-after: always; }
+    dt { margin-top: 10pt; font-weight: bold; page-break-after: avoid; }
+    dd { page-break-inside: avoid; }
+    table { width: auto; }
     th { font-weight: normal; font-style: italic; }
-    th, td { vertical-align: top; padding: 2pt; }
+    dd.dtype-object th:not(:first-child) { width: 45%; }
+    th, td { vertical-align: top; padding: 1pt; }
+    dd.dtype-int64 th:first-child { padding-right: 10pt; }
     div.self-review { margin-top: 5pt; }
     span.label { padding-right: 5pt; font-style: italic; }
 </style>
 </head>
 <body>
+<h1>{{ survey_name }}</h1>
 """
 
 HTML_FOOTER = "</body></html>"
 
 PARTICIPANT_TEMPLATE_TEXT = """\
-<section class="participant"><h1>{{ participant_name }}</h1>
+<section class="participant">
+    <h2>{{ participant_name }}</h2>
     <dl>
         {% for q, a in overall_responses %}
             <dt>{{ q }}</dt>
@@ -135,7 +141,7 @@ PARTICIPANT_TEMPLATE_TEXT = """\
         {% endfor %}
         {% for q in peer_survey_questions %}
             <dt>{{ q }}</dt>
-            <dd>
+            <dd class="dtype-{{ peer_reviews[q] | dataframe_type }}">
                 {{ peer_reviews[q] | dataframe }}
                 <div class="self-review">
                     <span class="label">Self:</span>
@@ -153,17 +159,21 @@ def dataframe_filter(df, **kwargs):
     """A Jinja filter that turns a Pandas DataFrame into HTML, with the specified options and with
     the Pandas display option temporarily set to allow full-width text in the cells."""
 
-    display_max_colwidth_key = 'display.max_colwidth'
-    saved_max_colwidth = pd.get_option(display_max_colwidth_key)
+    pd_display_max_colwidth_key = 'display.max_colwidth'
+    saved_max_colwidth = pd.get_option(pd_display_max_colwidth_key)
     try:
-        pd.set_option(display_max_colwidth_key, -1)
+        pd.set_option(pd_display_max_colwidth_key, -1)
         return df.to_html(**kwargs)
     finally:
-        pd.set_option(display_max_colwidth_key, saved_max_colwidth)
+        pd.set_option(pd_display_max_colwidth_key, saved_max_colwidth)
 
 env.filters['dataframe'] = dataframe_filter
+env.filters['dataframe_type'] = lambda df:df.dtypes[0].name
 
 participant_template = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
+
+# nested_peer_review_df.loc['Jane'][nested_peer_review_df.columns.levels[0][0]].dtypes[0].name
+# nested_peer_review_df.columns.levels[0][0]
 
 with open(args.output, 'w') as report_file:
     report_file.write(env.from_string(HTML_HEADER).render(survey_name=survey_name))
