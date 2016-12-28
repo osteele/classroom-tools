@@ -110,19 +110,25 @@ HTML_HEADER = """\
 <head>
 <meta charset="UTF-8">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeplate-starter-kit/3.0.2/css/typeplate.css">
 <title>{{ survey_name }}</title>
 <style>
-    body { margin: 5pt; }
+    body { margin: 5pt auto; max-width: 7.5in; }
     section.participant { page-break-after: always; }
+    section.participant:last-of-type { page-break-after: auto; }
     dt { margin-top: 10pt; font-weight: bold; page-break-after: avoid; }
     dd { page-break-inside: avoid; }
     table { width: auto; }
     th { font-weight: normal; font-style: italic; }
-    dd.dtype-object th:not(:first-child) { width: 45%; }
-    th, td { vertical-align: top; padding: 1pt; }
+    dd.dtype-object th:not(:first-child) { width: 40%; }
+    th, td { vertical-align: top; padding: 1pt; padding-right; }
+    td { padding-right: 10pt; }
     dd.dtype-int64 th:first-child { padding-right: 10pt; }
     div.self-review { margin-top: 5pt; }
     span.label { padding-right: 5pt; font-style: italic; }
+    q, dd.dtype-object td { quotes: '\\201c' '\\201d'; hanging-punctuation: first; }
+    q::before, dd.dtype-object td::before { content: open-quote; }
+    q::after, dd.dtype-object td::after { content: close-quote; }
 </style>
 </head>
 <body>
@@ -137,7 +143,7 @@ PARTICIPANT_TEMPLATE_TEXT = """\
     <dl>
         {% for q, a in overall_responses %}
             <dt>{{ q }}</dt>
-            <dd>{{ a }}</dd>
+            <dd><q>{{ a }}</q></dd>
         {% endfor %}
         {% for q in peer_survey_questions %}
             <dt>{{ q }}</dt>
@@ -145,7 +151,7 @@ PARTICIPANT_TEMPLATE_TEXT = """\
                 {{ peer_reviews[q] | dataframe }}
                 <div class="self-review">
                     <span class="label">Self:</span>
-                    {{ self_reviews[q] }}
+                    <q>{{ self_reviews[q] }}</q>
                  </div>
             </dd>
         {% endfor %}
