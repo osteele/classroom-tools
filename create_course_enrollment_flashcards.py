@@ -29,6 +29,7 @@ from collections import namedtuple
 try:
     import pandas as pd
     from bs4 import BeautifulSoup
+    from jinja2 import Environment
 except ImportError as e:
     sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
     sys.exit(1)
@@ -36,10 +37,12 @@ except ImportError as e:
 # Jipyter / Hydrogen development
 if 'ipykernel' in sys.modules:
     sys.argv = ['script', 'downloads/ENGR2510-1.html', '-d', 'build', '--nicknames', 'config/student-nicknames.txt']
+    sys.argv += ['--format', 'html']
 
 parser = argparse.ArgumentParser(description="Create a Flashcard file and directory for students enrolled in a course.")
 parser.add_argument("-d", "--output-dir", help="Output directory. Defaults to HTML_FILE's directory.")
 parser.add_argument("-o", "--output", help="Output file. Should end in .csv or .xlsl.")
+parser.add_argument("-f", "--format", default="xlsl", choices=["csv", "html", "xlsl"])
 parser.add_argument("--course-name")
 parser.add_argument("--delete", action='store_true')
 parser.add_argument("--service", choices=["dropbox"], help="Place in Dropbox app directory. Use instead of --output-dir.")
@@ -77,6 +80,15 @@ course_term_field, _, course_number_field, course_name_field = \
 course_season, course_year = re.search('(Spring|Fall) Term - (\d{4})', course_term_field).groups()
 course_number, course_section = re.match(r'(.+)-(\d+)', course_number_field).groups()
 
+# Default to Excel. Excel is more robust than CSV against unicode.
+output_basename = "{}-{} {:.1}{:.2}.{}".format(course_number, int(course_section), course_season, course_year, args.format); output_basename
+output_path = args.output or os.path.join(args.output_dir or os.path.split(args.HTML_FILE)[0], (args.course_name or output_basename))
+output_path
+
+media_src_dir = os.path.split(args.HTML_FILE)[0]
+media_dst_dir = os.path.splitext(output_path)[0]
+media_dst_dir
+
 student_elt = html_content.select('#pg0_V_ggClassList tbody td img')
 student = pd.Series([e.text.strip() for e in student_elt]).str.replace('_', ' ')\
     .str.extract(r'(?P<last_name>.+?), (?P<first_name>\S+)', expand=True)
@@ -91,20 +103,58 @@ student.head()
 
 df = pd.DataFrame({"Text 2": student.fullname, "Picture 1": student.image_dst})
 df["Text 1"] = ""
-df
+df.head()
 
-# Default to Excel. Excel is more robust than CSV against unicode.
-output_basename = "{} {} {} {}.xlsx".format(course_number, course_section, course_season, course_year)
-output_path = args.output or os.path.join(args.output_dir or os.path.split(args.HTML_FILE)[0], (args.course_name or output_basename))
-output_path
+env = Environment()
+
+HTML_TEMPLATE_S = """\
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeplate-starter-kit/3.0.2/css/typeplate.css">
+        <title>{{ title }}</title>
+        <style>
+            body { margin: 0.5in auto; max-width: 7.5in; }
+            h1 { font-size: 250%; margin:10px; text-align: center; }
+            figure { display: inline-block; margin: 10px; vertical-align:top; }
+            img { width: 100px; height: 133px; object-fit: contain; }
+            figcaption { text-align: center; width: 100px; word-wrap: break-word; font-size: smaller; font-style:italic; line-height: 1.25em; }
+        </style>
+    </head>
+    <body>
+        <h1>{{ title }}</h1>
+        {% for student in students %}
+            <figure>
+                <img src="./{{ image_relpath_base|urlencode }}/{{ student.image_dst|urlencode }}" alt="{{ student.fullname }}"/>
+                <figcaption>{{ student.fullname }}</figcaption>
+            </figure>
+        {% endfor %}
+    </body>
+</html>
+"""
+html_template = env.from_string(HTML_TEMPLATE_S)
+
+def df_rows(df):
+    return (row for _, row in df.iterrows())
+
+def write_html():
+    with open(output_path, 'w') as f:
+        f.write(html_template.render(
+            title="{}-{} {} {}".format(course_number, course_section, course_season, course_year),
+            image_relpath_base=os.path.split(media_dst_dir)[1],
+            students=df_rows(student)))
 
 extn = os.path.splitext(output_path)[1]
-if extn == '.xlsx':
+if extn == '.csv':
+    df.to_csv(output_path)
+elif extn == '.html':
+    write_html()
+elif extn == '.xlsx':
     writer = pd.ExcelWriter(output_path, engine='xlsxwriter')
     df.to_excel(writer, index=False)
     writer.save()
-elif extn == '.csv':
-    df.to_csv(output_path)
 elif extn:
     raise Exception("Unknown file extension: %s" % extn[1:])
 else:
@@ -112,8 +162,6 @@ else:
 print('Wrote', output_path)
 
 # copy media files
-media_src_dir = os.path.split(args.HTML_FILE)[0]
-media_dst_dir = os.path.splitext(output_path)[0]
 os.makedirs(media_dst_dir, exist_ok=True)
 for _, row in student.iterrows():
     srcfile = os.path.join(media_src_dir, row.image_src)
