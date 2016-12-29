@@ -116,8 +116,16 @@ HTML_TEMPLATE_S = """\
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeplate-starter-kit/3.0.2/css/typeplate.css">
         <title>{{ title }}</title>
         <style>
-            body { margin: 0.5in auto; max-width: 7.5in; }
-            h1 { font-size: 250%; margin:10px; text-align: center; }
+            @media screen {
+              body { margin: 5pt auto; max-width: 10.5in; }
+              h1 { margin: 10px; }
+            }
+            @media print {
+              * { margin: 0 !important; padding: 0 !important; }
+              body { width: 10.7in; margin: 10px; transform: scale(.7); }
+              h1 { margin-bottom: 1.5em !important; }
+            }
+            h1 { font-size: 250%; text-align: center; }
             figure { display: inline-block; margin: 10px; vertical-align:top; }
             img { width: 100px; height: 133px; object-fit: contain; }
             figcaption { text-align: center; width: 100px; word-wrap: break-word; font-size: smaller; font-style:italic; line-height: 1.25em; }
@@ -136,15 +144,12 @@ HTML_TEMPLATE_S = """\
 """
 html_template = env.from_string(HTML_TEMPLATE_S)
 
-def df_rows(df):
-    return (row for _, row in df.iterrows())
-
 def write_html():
     with open(output_path, 'w') as f:
         f.write(html_template.render(
             title="{}-{} {} {}".format(course_number, course_section, course_season, course_year),
             image_relpath_base=os.path.split(media_dst_dir)[1],
-            students=df_rows(student)))
+            students=(row for _, row in student.iterrows())))
 
 extn = os.path.splitext(output_path)[1]
 if extn == '.csv':
