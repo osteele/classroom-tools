@@ -1,15 +1,28 @@
+#!/usr/bin/env python3
 # coding: utf-8
 
-# Create a `*.xlsx` file and `Media` folder that contain the names and photos of students enrolled in a course,
-# suitable for use with [FlashCard Deluxe](http://orangeorapple.com/Flashcards/).
-#
-# The input is a Course Enrollment HTML page, saved from Chrome with Format="Webpage, complete".
+"""
+Create a `*.xlsx` file and `Media` folder that contain the names and photos of students enrolled in a course,
+suitable for use with [FlashCard Deluxe](http://orangeorapple.com/Flashcards/).
+
+The input is a Course Enrollment HTML page, saved from Chrome with Format="Webpage, complete".
+"""
+
+__author__    = "Oliver Steele"
+__copyright__ = "Copyright 2016, Olin College"
+__license__   = "MIT"
+
+# Code conventions:
+# - this module is written in workbook style, not OO style
+# - single-variable lines are for development in Hydrogen
+# - 'single quotes' for strings used as symbols; "double quotes" for strings that appear in the output
 
 import argparse
 import filecmp
 import os
 import re
 import shutil
+import sys
 import unicodedata
 from collections import namedtuple
 
@@ -20,25 +33,25 @@ except ImportError as e:
     sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
     sys.exit(1)
 
-parser = argparse.ArgumentParser(description="Create a Flashcard file and directory for students enrolled in a course.")
-parser.add_argument('-o', '--output')
-parser.add_argument('--course-name')
-parser.add_argument('--delete', action='store_true')
-parser.add_argument('--service', choices=['dropbox'])
-parser.add_argument('--nicknames', help="Text file list of First “Nick” Last")
-parser.add_argument('HTML_FILE')
-
+# Jipyter / Hydrogen development
 if 'ipykernel' in sys.modules:
-    sys.argv = ['script', 'downloads/ENGR2510-1.html', '--nicknames', 'config/student-nicknames.txt', '--service', 'dropbox']
-    sys.argv = ['script', 'downloads/ENGR2510-1.html', '-o', 'test.csv']
+    sys.argv = ['script', 'downloads/ENGR2510-1.html', '-o', 'test.csv', '--nicknames', 'config/student-nicknames.txt']
 
+parser = argparse.ArgumentParser(description="Create a Flashcard file and directory for students enrolled in a course.")
+parser.add_argument("-d", "--output-dir", help="Output directory. Defaults to HTML_FILE's directory.")
+parser.add_argument("-o", "--output", help="Output file. Should end in .csv or .xlsl.")
+parser.add_argument("--course-name")
+parser.add_argument("--delete", action='store_true')
+parser.add_argument("--service", choices=["dropbox"])
+parser.add_argument("--nicknames", help="Text file list of First “Nick” Last")
+parser.add_argument("HTML_FILE")
 args = parser.parse_args(sys.argv[1:])
 
-RESIZE_IMAGES = None
+RESIZE_IMAGES = None  # not currently in use
 
-if args.service == 'dropbox':
+if args.service == "dropbox":
     assert not args.output
-    args.output_dir = os.path.expanduser('~/Dropbox/Apps/Flashcards Deluxe')
+    args.output_dir = os.path.expanduser("~/Dropbox/Apps/Flashcards Deluxe")
     assert os.path.isdir(args.output_dir)
 
 def normalize_name_for_lookup(first_name, last_name):
@@ -79,7 +92,7 @@ student_output_images = {student: student_fullname(student) + os.path.splitext(s
                          for student in students}
 
 df = pd.DataFrame([['', student_fullname(s), student_output_images[s]] for s in students],
-                  columns=['Text 1', 'Text 2', 'Picture 1'])
+                  columns=["Text 1", "Text 2", "Picture 1"])
 df
 
 extn = os.path.splitext(output_path)[1]
@@ -104,21 +117,21 @@ for student in students:
     ext = os.path.splitext(dstfile)[1][1:]
     if RESIZE_IMAGES and ext.lower() in ['jpeg', 'jpg', 'png']:
         from PIL import Image  # down here, so we needn't import PIL unless it's used
-        print('convert', os.path.split(srcfile)[1], '->', os.path.split(dstfile)[1])
+        print("convert", os.path.split(srcfile)[1], '->', os.path.split(dstfile)[1])
         im = Image.open(srcfile)
         w, h = im.size
         s = RESIZE_IMAGES / max(w, h)
         im = im.resize((int(s * w), int(s * h)), Image.ANTIALIAS)
         im.save(dstfile)
     elif not os.path.exists(dstfile) or not filecmp.cmp(srcfile, dstfile):
-        print('cp', os.path.split(srcfile)[1], '->', os.path.split(dstfile)[1])
+        print("cp", os.path.split(srcfile)[1], '->', os.path.split(dstfile)[1])
         shutil.copy(srcfile, dstfile)
 
 # delete stale media files
 if args.delete:
-    print('remove dead files:')
+    print("remove dead files:")
     image_files = set(f for f in os.listdir(media_output_dir) if os.path.isfile(os.path.join(media_output_dir, f)))
     dead_files = image_files - set(student_output_images.values())
     for dead_file in dead_files:
-        print('rm', dead_file)
+        print("rm", dead_file)
         os.remove(os.path.join(media_output_dir, dead_file))
