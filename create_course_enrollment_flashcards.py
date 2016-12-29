@@ -35,7 +35,7 @@ except ImportError as e:
 
 # Jipyter / Hydrogen development
 if 'ipykernel' in sys.modules:
-    sys.argv = ['script', 'downloads/ENGR2510-1.html', '-o', 'test.csv', '--nicknames', 'config/student-nicknames.txt']
+    sys.argv = ['script', 'downloads/ENGR2510-1.html', '-d', 'build', '--nicknames', 'config/student-nicknames.txt']
 
 parser = argparse.ArgumentParser(description="Create a Flashcard file and directory for students enrolled in a course.")
 parser.add_argument("-d", "--output-dir", help="Output directory. Defaults to HTML_FILE's directory.")
@@ -43,7 +43,7 @@ parser.add_argument("-o", "--output", help="Output file. Should end in .csv or .
 parser.add_argument("--course-name")
 parser.add_argument("--delete", action='store_true')
 parser.add_argument("--service", choices=["dropbox"], help="Place in Dropbox app directory. Use instead of --output-dir.")
-parser.add_argument("--nicknames", help="Text file list of First “Nick” Last")
+parser.add_argument("--nicknames", default="config/student-nicknames.txt", help="Text file list of First “Nick” Last")
 parser.add_argument("HTML_FILE")
 args = parser.parse_args(sys.argv[1:])
 
@@ -58,30 +58,16 @@ if args.service == "dropbox":
 ## Create a dictionary mapping registrar names to student names
 ##
 
-def normalize_name_for_lookup(first_name, last_name):
-    """Return a key suitable for lookup in the student nickname table."""
-    return tuple([unicodedata.normalize('NFD', s).lower() for s in [first_name, last_name]])
+def normalize_name(s):
+    return unicodedata.normalize('NFD', s).lower()
 
-student_nicknames = {(normalize_name_for_lookup(first_name, last_name)): nickname[:1].upper() + nickname[1:]
-                     for line in (open(args.nicknames).readlines() if args.nicknames else [])
-                     for first_name, nickname, last_name in [re.match(r'(.+?)\s*["“](.+)["”]\s*(.+)', line.strip()).groups()]}
-"""dictionary {(first_name, last_name): nickname}, where first_name and last_name are lowercase"""
+def name_key_series(fn_series, ln_series):
+    return list(zip(fn_series.map(normalize_name), ln_series.map(normalize_name)))
 
-##
-## Student record
-##
-
-Student = namedtuple('Student', ['first_name', 'last_name', 'img_path'])
-
-def get_nickname(first_name, last_name):
-    return student_nicknames.get((normalize_name_for_lookup(first_name, last_name)), first_name)
-
-def student_fullname(student):
-    return ' '.join([get_nickname(student.first_name, student.last_name), student.last_name])
-
-def parse_student_img(elt):
-    last_name, first_name = [s.replace('_', '-') for s in elt.text.strip().split(', ', 2)]
-    return Student(first_name.split(' ')[0], last_name, elt.attrs['src'])
+nickname_lines = open(args.nicknames).readlines() if args.nicknames else [["First “Nickname” Last"]]
+nickname = pd.DataFrame(nickname_lines)[0].str.extractall(r'(?P<fn>.+?)\s*["“](?P<nickname>.+)["”]\s*(?P<ln>.+)')
+nickname['name_key'] = name_key_series(nickname.fn, nickname.ln)
+nickname.head()
 
 html_content = BeautifulSoup(open(args.HTML_FILE), 'html.parser')
 html_content
@@ -91,21 +77,26 @@ course_term_field, _, course_number_field, course_name_field = \
 course_season, course_year = re.search('(Spring|Fall) Term - (\d{4})', course_term_field).groups()
 course_number, course_section = re.match(r'(.+)-(\d+)', course_number_field).groups()
 
+student_elt = html_content.select('#pg0_V_ggClassList tbody td img')
+student = pd.Series([e.text.strip() for e in student_elt]).str.replace('_', ' ')\
+    .str.extract(r'(?P<last_name>.+?), (?P<first_name>\S+)', expand=True)
+student['image_src'] = [e.attrs['src'] for e in student_elt]
+student['name_key'] = name_key_series(student.first_name, student.last_name)
+student['nickname'] = pd.merge(student, nickname, on='name_key', how='left')['nickname']
+student.nickname.fillna(student.first_name, inplace=True)
+student['fullname'] = student.first_name.str.cat(student.last_name, ' ')
+student['image_extn'] = student.image_src.str.extract('(\.[^.]+)$', expand=True)
+student['image_dst'] = student.fullname.str.cat(student.image_extn)
+student.head()
+
+df = pd.DataFrame({"Text 2": student.fullname, "Picture 1": student.image_dst})
+df["Text 1"] = ""
+df
+
 # Default to Excel. Excel is more robust than CSV against unicode.
 output_basename = "{} {} {} {}.xlsx".format(course_number, course_section, course_season, course_year)
 output_path = args.output or os.path.join(args.output_dir or os.path.split(args.HTML_FILE)[0], (args.course_name or output_basename))
 output_path
-
-students = sorted(map(parse_student_img, html_content.select('#pg0_V_ggClassList tbody td img')))
-students
-
-student_output_images = {student: student_fullname(student) + os.path.splitext(student.img_path)[1]
-                         for student in students}
-student_output_images
-
-df = pd.DataFrame([['', student_fullname(s), student_output_images[s]] for s in students],
-                  columns=["Text 1", "Text 2", "Picture 1"])
-df
 
 extn = os.path.splitext(output_path)[1]
 if extn == '.xlsx':
@@ -121,11 +112,12 @@ else:
 print('Wrote', output_path)
 
 # copy media files
-media_output_dir = os.path.splitext(output_path)[0]
-os.makedirs(media_output_dir, exist_ok=True)
-for student in students:
-    srcfile = os.path.join(os.path.join(os.path.split(args.HTML_FILE)[0]), student.img_path)
-    dstfile = os.path.join(media_output_dir, student_output_images[student])
+media_src_dir = os.path.split(args.HTML_FILE)[0]
+media_dst_dir = os.path.splitext(output_path)[0]
+os.makedirs(media_dst_dir, exist_ok=True)
+for _, row in student.iterrows():
+    srcfile = os.path.join(media_src_dir, row.image_src)
+    dstfile = os.path.join(media_dst_dir, row.image_dst)
     ext = os.path.splitext(dstfile)[1][1:]
     if RESIZE_IMAGES and ext.lower() in ['jpeg', 'jpg', 'png']:
         from PIL import Image  # down here, so we needn't import PIL unless it's used
@@ -142,8 +134,7 @@ for student in students:
 # delete stale media files
 if args.delete:
     print("remove dead files:")
-    image_files = set(f for f in os.listdir(media_output_dir) if os.path.isfile(os.path.join(media_output_dir, f)))
-    dead_files = image_files - set(student_output_images.values())
-    for dead_file in sorted(dead_files):
+    image_files = set(f for f in os.listdir(media_dst_dir) if os.path.isfile(os.path.join(media_dst_dir, f)))
+    for dead_file in sorted(image_files - set(student.image_dst)):
         print("rm", dead_file)
-        os.remove(os.path.join(media_output_dir, dead_file))
+        os.remove(os.path.join(media_dst_dir, dead_file))
