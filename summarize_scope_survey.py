@@ -2,9 +2,9 @@
 
 "Create an HTML report from a SCOPE P&S survey."
 
-__author__    = "Oliver Steele"
+__author__ = "Oliver Steele"
 __copyright__ = "Copyright 2016, Olin College"
-__license__   = "MIT"
+__license__ = "MIT"
 
 # Code conventions:
 # - this module is written in workbook style, not OO style
@@ -13,10 +13,9 @@ __license__   = "MIT"
 # - 'part' abbreviates 'participant', for compatibility with the input CSV columns
 
 import argparse
-import math
 import os
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 
 try:
     from jinja2 import Environment
@@ -70,7 +69,7 @@ response_df
 # These are separate dataframes because the first has different columns, and the second two have different indices
 # from each other.
 
-overall_response_df = response_df.loc[False].reset_index(level=[0,2], drop=True).dropna(axis=1).select_dtypes(exclude=[int])
+overall_response_df = response_df.loc[False].reset_index(level=[0, 2], drop=True).dropna(axis=1).select_dtypes(exclude=[int])
 overall_response_df
 
 self_review_df = response_df.loc[True].loc[True].reset_index(level=0, drop=True).dropna(axis=1)
@@ -174,7 +173,7 @@ def dataframe_filter(df, **kwargs):
         pd.set_option(pd_display_max_colwidth_key, saved_max_colwidth)
 
 env.filters['dataframe'] = dataframe_filter
-env.filters['dataframe_type'] = lambda df:df.dtypes[0].name
+env.filters['dataframe_type'] = lambda df: df.dtypes[0].name
 
 participant_template = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
 
