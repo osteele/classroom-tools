@@ -34,7 +34,7 @@ except ImportError as e:
     sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
     sys.exit(1)
 
-# Jipyter / Hydrogen development
+# Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
     sys.argv = ['script', 'downloads/ENGR2510-1.html', '-d', 'build', '--nicknames', 'config/student-nicknames.txt']
     sys.argv += ['--format', 'html']
@@ -57,8 +57,17 @@ if args.service == "dropbox":
     args.output_dir = os.path.expanduser("~/Dropbox/Apps/Flashcards Deluxe")
     assert os.path.isdir(args.output_dir), "Error: ~s does not exist" % args.output_dir
 
-##
-## Create a dictionary mapping registrar names to student names
+CLASS_NAMES = {
+    'FF': 'First-year',
+    'SO': 'Sophomore',
+    'JR': 'Junior',
+    'SR': 'Senior',
+    'TF': 'Transfer',
+    'XR': 'Cross-registered'
+    }
+
+
+## Utility functions
 ##
 
 def normalize_name(s):
@@ -66,6 +75,26 @@ def normalize_name(s):
 
 def name_key_series(fn_series, ln_series):
     return list(zip(fn_series.map(normalize_name), ln_series.map(normalize_name)))
+
+def inner_html(e):
+    return ''.join(str(child) for child in e.children).strip()
+
+# I couldn't get panda.from_html working, and it came with even more
+# package dependencies.
+def dataframe_from_html(table):
+    # The following heuristics work just well enough for these specific tables
+    rows = table.select('tr')
+    header_rows = [row.select('th') for row in rows if row.select('th')]
+    assert len(header_rows) == 1, "missing header row"
+    col_names = [inner_html(th) or '_%d' % i for i, th in enumerate(header_rows[0])]
+    data_rows = [row.select('td') for row in rows if not row.select('th')]
+    data_rows = [row for row in data_rows if len(row) == len(col_names)]
+    assert data_rows, "missing header row"
+    data = [[inner_html(td) for td in row] for row in data_rows]
+    return pd.DataFrame.from_records(data, columns=col_names)
+
+## Create a dictionary mapping registrar names to student names
+##
 
 nickname_lines = open(args.nicknames).readlines() if args.nicknames else [["First “Nickname” Last"]]
 nickname = pd.DataFrame(nickname_lines)[0].str.extractall(r'(?P<fn>.+?)\s*["“](?P<nickname>.+)["”]\s*(?P<ln>.+)')
@@ -78,10 +107,11 @@ html_content
 course_term_field, _, course_number_field, course_name_field = \
     [s.strip() for s in html_content.select('#pg0_V_ggClassList thead tr')[0].text.split('|')]
 course_season, course_year = re.search('(Spring|Fall) Term - (\d{4})', course_term_field).groups()
-course_number, course_section = re.match(r'(.+)-(\d+)', course_number_field).groups()
+course_number, course_section = re.match(r'(.+)-0(\d+)', course_number_field).groups()
+course_section
 
-# Default to Excel. Excel is more robust than CSV against unicode.
-output_basename = "{}-{} {:.1}{:.2}.{}".format(course_number, int(course_section), course_season, course_year, args.format); output_basename
+# Default to Excel. Excel is more robust than CSV w.r.t. unicode.
+output_basename = "{} §{} {:.2}{:.4}.{}".format(course_number, int(course_section), course_season, course_year[2:], args.format)
 output_path = args.output or os.path.join(args.output_dir or os.path.split(args.HTML_FILE)[0], (args.course_name or output_basename))
 output_path
 
@@ -89,21 +119,34 @@ media_src_dir = os.path.split(args.HTML_FILE)[0]
 media_dst_dir = os.path.splitext(output_path)[0]
 media_dst_dir
 
+html_df = dataframe_from_html(html_content.select('#pg0_V_ggClassList')[0])
+html_df
+
+# TODO read this from html_df instead of duplicating the select?
 student_elt = html_content.select('#pg0_V_ggClassList tbody td img')
-student = pd.Series([e.text.strip() for e in student_elt]).str.replace('_', ' ')\
-    .str.extract(r'(?P<last_name>.+?), (?P<first_name>\S+)', expand=True)
+student = (pd.Series([e.text.strip() for e in student_elt])
+    .str.replace('_', ' ')
+    .str.extract(r'(?P<last_name>.+?), (?P<first_name>\S+)', expand=True))
+
+student['year'] = html_df['Class'].map(CLASS_NAMES)
+student['status'] = html_df['Status'].str.extract(r'(\w+)', expand=False)
 student['image_src'] = [e.attrs['src'] for e in student_elt]
-student['name_key'] = name_key_series(student.first_name, student.last_name)
+student['name_key'] = name_key_series(student['first_name'], student['last_name'])
 student['nickname'] = pd.merge(student, nickname, on='name_key', how='left')['nickname']
-student.nickname.fillna(student.first_name, inplace=True)
-student['fullname'] = student.first_name.str.cat(student.last_name, ' ')
-student['image_extn'] = student.image_src.str.extract('(\.[^.]+)$', expand=True)
-student['image_dst'] = student.fullname.str.cat(student.image_extn)
+student['nickname'].fillna(student['first_name'], inplace=True)
+student['fullname'] = student['first_name'].str.cat(student.last_name, ' ')
+student['image_extn'] = student['image_src'].str.extract('(\.[^.]+)$', expand=False)
+student['image_dst'] = student['fullname'].str.cat(student['image_extn'])
+
+student = student.loc[student['status'] == 'Registered']
 student.head()
 
 df = pd.DataFrame({"Text 2": student.fullname, "Picture 1": student.image_dst})
 df["Text 1"] = ""
 df.head()
+
+## Create HTML
+##
 
 env = Environment()
 
@@ -122,7 +165,7 @@ HTML_TEMPLATE_S = """\
             }
             @media print {
               * { margin: 0 !important; padding: 0 !important; }
-              body { width: 10.7in; margin: 10px; transform: scale(.7); }
+              body { width: 12in; margin: 5px; transform: scale(.7); }
               h1 { margin-bottom: 1.5em !important; }
             }
             h1 { font-size: 250%; text-align: center; }
@@ -146,8 +189,9 @@ html_template = env.from_string(HTML_TEMPLATE_S)
 
 def write_html():
     with open(output_path, 'w') as f:
+        title = "{} §{} {} {}".format(course_number, course_section, course_season, course_year)
         f.write(html_template.render(
-            title="{}-{} {} {}".format(course_number, course_section, course_season, course_year),
+            title=title,
             image_relpath_base=os.path.split(media_dst_dir)[1],
             students=(row for _, row in student.iterrows())))
 
@@ -165,6 +209,9 @@ elif extn:
 else:
     raise Exception("Missing file extension: %s" % output_path)
 print('Wrote', output_path)
+
+## Create Flashcard files
+##
 
 # copy media files
 os.makedirs(media_dst_dir, exist_ok=True)
