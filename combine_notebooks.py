@@ -29,8 +29,17 @@ POLL_RE = r'#+ (poll|Notes for the Instructors)'
 
 ORIGIN_DIRNAME = 'origin'
 
-REPO_NAME = 'sd17spring/ReadingJournal'
-nb_name = 'day2_reading_journal.ipynb'
+# Test data for Jupyter / Hydrogen development
+if 'ipykernel' in sys.modules:
+    sys.argv = ['script', 'sd17spring/ReadingJournal', 'day2_reading_journal.ipynb']
+
+parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
+parser.add_argument("repo", metavar='REPO_NAME', help="GitHub source repo, in format username/repo_name")
+parser.add_argument("notebook", metavar='NOTEBOOK', help="filename of *.ipynb notebook")
+args = parser.parse_args(sys.argv[1:])
+
+REPO_NAME = args.repo
+nb_name = args.notebook
 
 BUILD_DIR = os.path.join('build', REPO_NAME)
 PROCESSED_NOTEBOOK_DIR = os.path.join(BUILD_DIR, "processed_notebooks")

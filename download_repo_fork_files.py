@@ -17,6 +17,7 @@ from utils import collect_repo_hashes, get_file_git_hash
 DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
 ORIGIN_DIRNAME = 'origin'
 
+# Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
     sys.argv = ['script', 'sd17spring/ReadingJournal']
     # sys.argv = ['script', '--classroom', 'focs16fall/focs-2016fall-exam-1']
