@@ -14,22 +14,28 @@ import sys
 import urllib
 from collections import OrderedDict
 from copy import deepcopy
+from glob import glob
+from json import JSONDecodeError
 from multiprocessing import Pool
 
 import Levenshtein
-import pandas as pd
-import nbformat
 import nbconvert
+import nbformat
+import pandas as pd
 from numpy import argmin
 
-from disk_cache import disk_cache
+QUESTION_RE = r'#+ Exercise'
+POLL_RE = r'#+ (poll|Notes for the Instructors)'
 
-PROJECT_DIR = os.path.relpath(os.path.join(os.path.dirname(__file__), '..'))
-PROCESSED_NOTEBOOK_DIR = os.path.join(PROJECT_DIR, "processed_notebooks")
-SUMMARY_DIR = os.path.join(PROJECT_DIR, 'summaries')
+ORIGIN_DIRNAME = 'origin'
 
-CACHE_DIR = os.path.join(PROJECT_DIR, '_cache')
-use_disk_cache = False  # the --use-disk-cache CLI arg sets this
+REPO_NAME = 'sd17spring/ReadingJournal'
+nb_name = 'day2_reading_journal.ipynb'
+
+BUILD_DIR = os.path.join('build', REPO_NAME)
+PROCESSED_NOTEBOOK_DIR = os.path.join(BUILD_DIR, "processed_notebooks")
+SUMMARY_DIR = os.path.join(BUILD_DIR, 'summaries')
+CLEAR_OUTPUTS = True
 
 class NotebookExtractor(object):
     """ The top-level class for extracting answers from a notebook.
@@ -38,11 +44,11 @@ class NotebookExtractor(object):
 
     MATCH_THRESH = 10  # maximum edit distance to consider something a match
 
-    def __init__(self, users_df, notebook_template_file, include_usernames=False):
+    def __init__(self, notebook_template_file, notebooks, include_usernames=False):
         """ Initialize with the specified notebook URLs and
             list of question prompts """
-        self.users_df = users_df
         self.question_prompts = self.build_question_prompts(notebook_template_file)
+        self.notebooks = notebooks
         self.include_usernames = include_usernames
         nb_basename = os.path.basename(notebook_template_file)
         self.nb_name_stem = os.path.splitext(nb_basename)[0]
@@ -51,7 +57,7 @@ class NotebookExtractor(object):
         """Returns a list of `QuestionPrompt`. Each cell with metadata `is_question` truthy
         produces an instance of `QuestionPrompt`."""
         with open(notebook_template_file, 'r') as fid:
-            self.template = json.load(fid)
+            self.template = nb_add_metadata(json.load(fid))
 
         prompts = []
         prev_prompt = None
@@ -67,7 +73,7 @@ class NotebookExtractor(object):
                                               name=metadata.get('problem', None),
                                               index=len(prompts),
                                               start_md=cell_source,
-                                              stop_md=u'next_cell',
+                                              stop_md='next_cell',
                                               is_optional=metadata.get('is_optional', None),
                                               is_poll=is_poll
                                               ))
@@ -80,16 +86,6 @@ class NotebookExtractor(object):
                     prev_prompt = None
         return prompts
 
-    def fetch_notebooks(self):
-        """Returns a dictionary {github_username -> url, json?}.
-
-        Unavailable notebooks have a value of `None`."""
-
-        p = Pool(20)  # HTTP fetch parallelism. This number is empirically good.
-        print "Fetching %d notebooks..." % self.users_df['notebook_urls'].count()
-        return dict(zip(self.users_df['gh_username'],
-                        p.map(p_read_json_from_url, self.users_df['notebook_urls'])))
-
     def gh_username_to_fullname(self, gh_username):
         return self.users_df[users_df['gh_username'] == gh_username]['Full Name'].iloc[0]
 
@@ -98,18 +94,7 @@ class NotebookExtractor(object):
             the questions and answers to the reading.
         """
 
-        nbs = self.fetch_notebooks()
-        self.usernames = sorted([name for name, nb in nbs.items() if nb], key=self.gh_username_to_fullname)
-
-        users_missing_notebooks = [u for u, notebook_content in nbs.items() if not notebook_content]
-        if users_missing_notebooks:
-            fullnames = map(self.gh_username_to_fullname, users_missing_notebooks)
-            print "Users missing notebooks:", ', '.join(sorted(fullnames))
-
-        if self.include_usernames:
-            # Sort by username iff including the usernames in the output.
-            # This makes it easier to find students.
-            nbs = OrderedDict(sorted(nbs.items(), key=lambda t: t[0].lower()))
+        nbs = {nb['metadata']['owner']: nb for nb in self.notebooks}
 
         for prompt in self.question_prompts:
             prompt.answer_status = {}
@@ -141,7 +126,7 @@ class NotebookExtractor(object):
         sort_responses = False  # FIXME doesn't work because questions are collected into first response
         if sort_responses:
             def cell_slines_length(response_cells):
-                return len('\n'.join(u''.join(cell['source']) for cell in response_cells).strip())
+                return len('\n'.join(''.join(cell['source']) for cell in response_cells).strip())
             for prompt in self.question_prompts:
                 prompt.answers = OrderedDict(sorted(prompt.answers.items(), key=lambda t: cell_slines_length(t[1])))
 
@@ -154,10 +139,10 @@ class NotebookExtractor(object):
                                 for username, status in prompt.answer_status.items()
                                 if status != 'answered')
             for username, status in unanswered:
-                print "{status} {prompt_name}: {username}".format(
-                    status=status.capitalize(),
-                    prompt_name=prompt.name,
-                    username=self.gh_username_to_fullname(username))
+                print("{status} {prompt_name}: {username}".format(
+                                        status=status.capitalize(),
+                                        prompt_name=prompt.name,
+                                        username=self.gh_username_to_fullname(username)))
 
     def write_notebook(self, include_html=True):
         suffix = "_responses_with_names" if self.include_usernames else "_responses"
@@ -181,7 +166,8 @@ class NotebookExtractor(object):
         answer_book['cells'] = filtered_cells
         nb = nbformat.from_dict(answer_book)
 
-        print "Writing", output_file
+        print("Writing", output_file)
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
         with io.open(output_file, 'wt') as fp:
             nbformat.write(nb, fp, version=4)
 
@@ -189,7 +175,8 @@ class NotebookExtractor(object):
             # TODO why is the following necessary?
             nb = nbformat.reads(nbformat.writes(nb, version=4), as_version=4)
             html_content, _ = nbconvert.export_html(nb)
-            print "Writing", html_output
+            print("Writing", html_output)
+            os.makedirs(os.path.dirname(html_output), exist_ok=True)
             with io.open(html_output, 'w') as fp:
                 fp.write(html_content)
 
@@ -205,9 +192,9 @@ class NotebookExtractor(object):
         df.insert(0, 'Total', df.sum(axis=1))
         df = pd.concat([df, pd.DataFrame(df.sum(axis=0).astype(int), columns=['Total']).T])
 
-        print "Writing", output_file
-        print 'Answer counts:'
-        print df['Total']
+        print("Writing", output_file)
+        print('Answer counts:')
+        print(df['Total'])
         df.to_csv(output_file)
 
     def write_poll_results(self):
@@ -215,7 +202,7 @@ class NotebookExtractor(object):
         for prompt in poll_questions:
             slug = prompt.name.replace(' ', '_').lower()
             output_file = os.path.join(SUMMARY_DIR, '%s_%s.csv' % (self.nb_name_stem, slug))
-            print "Writing %s: poll results for %s" % (output_file, prompt.name)
+            print("Writing %s: poll results for %s" % (output_file, prompt.name))
 
             def user_response_text(username):
                 return NotebookUtils.cell_list_text(prompt.answers.get(username, []))
@@ -259,7 +246,7 @@ class QuestionPrompt(object):
         answers = dict(self.answers)
         answer_strings = set()  # answers to this question, as strings; used to avoid duplicates
         for username, response_cells in self.answers.items():
-            answer_string = '\n'.join(u''.join(cell['source']) for cell in response_cells).strip()
+            answer_string = '\n'.join(''.join(cell['source']) for cell in response_cells).strip()
             if answer_string in answer_strings:
                 del answers[username]
             else:
@@ -288,7 +275,7 @@ class QuestionPrompt(object):
             the matching_threshold, the empty list will be
             returned. """
         return_value = []
-        distances = [Levenshtein.distance(self.start_md, u''.join(cell['source']))
+        distances = [Levenshtein.distance(self.start_md, ''.join(cell['source']))
                      for cell in cells]
         if min(distances) > matching_threshold:
             return return_value
@@ -299,7 +286,7 @@ class QuestionPrompt(object):
         elif len(self.stop_md) == 0:
             end_offset = len(cells) - best_match
         else:
-            distances = [Levenshtein.distance(self.stop_md, u''.join(cell['source']))
+            distances = [Levenshtein.distance(self.stop_md, ''.join(cell['source']))
                          for cell in cells[best_match:]]
             if min(distances) > matching_threshold:
                 return return_value
@@ -319,42 +306,57 @@ class NotebookUtils:
             with the specified text at the specified heading_level.
             e.g. mark_down_heading_cell('Notebook Title','#')
         """
-        return {u'cell_type': u'markdown',
-                u'metadata': {},
-                u'source': unicode('#' * heading_level + " " + text)}
+        return {
+            'cell_type': 'markdown',
+            'metadata': {},
+            'source': unicode('#' * heading_level + " " + text)
+            }
 
     @staticmethod
     def cell_list_text(cells):
-        return u''.join(s for cell in cells for s in cell['source']).strip()
+        return ''.join(s for cell in cells for s in cell['source']).strip()
 
+repos_download_dir = os.path.join('./downloads', REPO_NAME.replace('/', '-'))
+origin_notebook = os.path.join(repos_download_dir, ORIGIN_DIRNAME, nb_name)
+assert os.path.exists(origin_notebook)
 
-def validate_github_username(gh_name):
-    """Return `gh_name` if that Github user has a `repo_name` repository; else None."""
-    fid = urllib.urlopen("http://github.com/" + gh_name)
-    fid.close()
-    return gh_name if 200 <= fid.getcode() <= 299 else None
+def nb_add_metadata(nb, owner=None):
+    if owner: nb['metadata']['owner'] = owner
+    for cell in nb['cells']:
+        if cell['cell_type'] == 'markdown' and cell['source']:
+            if re.match(QUESTION_RE, cell['source'][0]):
+                cell['metadata']['is_question'] = True
+            if re.match(POLL_RE, cell['source'][0]):
+                cell['metadata']['is_poll'] = True
+    return nb
 
+def file_owner_from_path(path):
+    return os.path.basename(os.path.dirname(path))
 
-@disk_cache(active_fn=lambda: use_disk_cache, cache_dir=CACHE_DIR)
-def validate_github_usernames(gh_usernames, repo_name):
-    """Returns a set of valid github usernames.
+def safe_read_notebook(path, owner=None, clear_outputs=False):
+    with open(path) as f:
+        try:
+            nb = json.load(f)
+        except JSONDecodeError as e:
+            print(path, e)
+            return None
+    nb = nb_add_metadata(nb, owner)
+    if clear_outputs:
+        for cell in nb['cells']:
+            if 'outputs' in cell:
+                cell['outputs'] = []
+    return nb
 
-    A name is valid iff a GitHub user with that name exists, and owns a repository named `repo_name`.
+student_notebooks = [safe_read_notebook(path, owner=file_owner_from_path(path), clear_outputs=CLEAR_OUTPUTS)
+                     for path in glob(os.path.join(repos_download_dir, '*', nb_name))
+                     if file_owner_from_path(path) != ORIGIN_DIRNAME]
 
-    `gh_usernames_path` is a path to a CSV file with a `gh_username` column.
+student_notebooks = [nb for nb in student_notebooks if nb]
 
-    Prints invalid names as errors."""
-    p = Pool(20)
-    valid_usernames = filter(None, p.map(validate_github_username, gh_usernames))
-    invalid_usernames = set(gh_usernames) - set(valid_usernames)
-    if invalid_usernames:
-        print >> sys.stderr, "Invalid github username(s):", ', '.join(invalid_usernames)
-    return valid_usernames
+nbe = NotebookExtractor(origin_notebook, student_notebooks)
+nbe.extract()
 
-if True:
-    nbe = NotebookExtractor(users_df, template_nb_path, include_usernames=args.include_usernames)
-    nbe.extract()
-    nbe.report_missing_answers()
-    nbe.write_notebook(include_html=args.html_output)
-    nbe.write_poll_results()
-    nbe.write_answer_counts()
+# nbe.report_missing_answers()
+nbe.write_notebook(include_html=True)
+# nbe.write_poll_results()
+# nbe.write_answer_counts()
