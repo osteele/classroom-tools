@@ -14,8 +14,18 @@ import sys
 from github import Github, GithubException
 from utils import collect_repo_hashes, get_file_git_hash
 
+
+## Constants
+##
+
 DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
 ORIGIN_DIRNAME = 'origin'
+GH_TOKEN = os.environ['GITHUB_API_TOKEN']
+TEAM_NAMES = ['instructors', 'faculty', 'ninjas']
+
+
+## Command-line arguments
+##
 
 # Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
@@ -25,8 +35,9 @@ if 'ipykernel' in sys.modules:
 parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
 parser.add_argument("--classroom", action='store_true', help="Repo is a GitHub classroom")
 parser.add_argument("--config", default=DEFAULT_CONFIG_FILE, help="YAML configuration file")
-parser.add_argument("--flatten", action='store_true', default=None, help="Flatten single-file repos")
-parser.add_argument("--ignore-images", action='store_true', default=None)
+parser.add_argument('-n', "--dry-run", action='store_true', default=False)
+parser.add_argument("--flatten", action='store_true', default=False, help="Flatten single-file repos")
+parser.add_argument("--ignore-images", action='store_true', default=False)
 parser.add_argument("--limit", type=int, metavar='N', help="download only the first N repos")
 parser.add_argument("--match", metavar='SUBSTRING', help="download only repos that contains SUBSTRING")
 parser.add_argument("repo", metavar='REPO_NAME', help="GitHub source repo, in format username/repo_name")
@@ -37,15 +48,7 @@ if args.flatten is None:
 if args.ignore_images is None:
     args.ignore_images = args.classroom
 
-GH_TOKEN = os.environ['GITHUB_API_TOKEN']
-TEAM_NAMES = ['instructors', 'faculty', 'ninjas']
-
 DOWNLOAD_PATH = os.path.join('downloads', args.repo.replace('/', '-'))
-
-gh = Github(GH_TOKEN)
-
-origin = gh.get_repo(args.repo)
-assert origin.owner, "not a GitHub repo: %s" % args.repo
 
 def download_contents(repo, dst_path, skip_same_as_origin=True):
     items = [item
@@ -78,12 +81,16 @@ def download_contents(repo, dst_path, skip_same_as_origin=True):
         dst_name = file_destinations[item.path]
         os.makedirs(os.path.dirname(dst_name), exist_ok=True)
         blob = repo.get_git_blob(item.url.split('/')[-1])
-        with open(dst_name, 'wb') as f:
-            f.write(base64.b64decode(blob.content))
+        if not args.dry_run:
+            with open(dst_name, 'wb') as f:
+                f.write(base64.b64decode(blob.content))
 
 def repo_owner_login(repo):
     return repo.name[len(origin.name + '-'):] if args.classroom else repo.owner.login
 
+gh = Github(GH_TOKEN)
+origin = gh.get_repo(args.repo)
+assert origin.owner, "not a GitHub repo: %s" % args.repo
 teams = [team for team in gh.get_organization(origin.organization.login).get_teams() if team.name.lower() in TEAM_NAMES]
 instructor_logins = {member.login for team in teams for member in team.get_members()}
 
@@ -92,8 +99,13 @@ if args.classroom:
 else:
     repos = origin.get_forks()
 
+repos = (
+    [r for r in gh.get_user().get_repos() if r.owner == origin.owner and r.name.startswith(origin.name + '-')]
+    if args.classroom else origin.get_forks())
+
 repos = [repo for repo in repos if repo.owner.login not in instructor_logins and repo_owner_login(repo) not in instructor_logins]
 repos = sorted(repos, key=repo_owner_login)
+
 if args.match: repos = [repo for repo in repos if args.match in repo_owner_login(repo)]
 if args.limit: repos = repos[:args.limit]
 
