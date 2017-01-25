@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-""" This script is designed to support active reading.  It takes as input
-    a set of ipython notebook as well as some target cells which define a set
-    of reading exercises.  The script processes the collection of notebooks
-    and builds a notebook which summarizes the responses to each question.
+"""
+This script is designed to support active reading.  It takes as input
+a set of ipython notebook as well as some target cells which define a set
+of reading exercises.  The script processes the collection of notebooks
+and builds a notebook which summarizes the responses to each question.
+
+Original work by Paul Ruvolo.
+Adapted by Oliver Steele
 """
 
 import argparse
@@ -24,10 +28,18 @@ import nbformat
 import pandas as pd
 from numpy import argmin
 
-QUESTION_RE = r'#+ Exercise'
-POLL_RE = r'#+ (poll|Notes for the Instructors)'
 
+## Constants
+##
+
+QUESTION_RE = r'#+ Exercise'
+POLL_RE = r'#+ .*(poll|Notes for the Instructors|Reading Journal Feedback)'
 ORIGIN_DIRNAME = 'origin'
+CLEAR_OUTPUTS = True
+
+
+## Command-line arguments
+##
 
 # Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
@@ -35,16 +47,57 @@ if 'ipykernel' in sys.modules:
 
 parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
 parser.add_argument("repo", metavar='REPO_NAME', help="GitHub source repo, in format username/repo_name")
-parser.add_argument("notebook", metavar='NOTEBOOK', help="filename of *.ipynb notebook")
+parser.add_argument("notebook", metavar='NOTEBOOK', help="Jupyter notebook filename")
 args = parser.parse_args(sys.argv[1:])
 
-REPO_NAME = args.repo
+repo_name = args.repo
 nb_name = args.notebook
 
-BUILD_DIR = os.path.join('build', REPO_NAME)
-PROCESSED_NOTEBOOK_DIR = os.path.join(BUILD_DIR, "processed_notebooks")
-SUMMARY_DIR = os.path.join(BUILD_DIR, 'summaries')
-CLEAR_OUTPUTS = True
+build_dir = os.path.join('build', repo_name)
+processed_notebook_dir = os.path.join(build_dir, "processed_notebooks")
+summary_dir = os.path.join(build_dir, 'summaries')
+
+repos_download_dir = os.path.join('./downloads', repo_name.replace('/', '-'))
+
+origin_notebook = os.path.join(repos_download_dir, ORIGIN_DIRNAME, nb_name)
+assert os.path.exists(origin_notebook)
+
+
+## Functions
+##
+
+def file_owner_from_path(path):
+    return os.path.basename(os.path.dirname(path))
+
+def nb_add_metadata(nb, owner=None):
+    if owner:
+        nb['metadata']['owner'] = owner
+    for cell in nb['cells']:
+        if cell['cell_type'] == 'markdown' and cell['source']:
+            if re.match(QUESTION_RE, cell['source'][0], re.IGNORECASE):
+                cell['metadata']['is_question'] = True
+            elif re.match(POLL_RE, cell['source'][0], re.IGNORECASE):
+                cell['metadata']['is_question'] = True
+                cell['metadata']['is_poll'] = True
+    return nb
+
+def safe_read_notebook(path, owner=None, clear_outputs=False):
+    with open(path) as f:
+        try:
+            nb = json.load(f)
+        except JSONDecodeError as e:
+            print(path, e)
+            return None
+    nb = nb_add_metadata(nb, owner)
+    if clear_outputs:
+        for cell in nb['cells']:
+            if 'outputs' in cell:
+                cell['outputs'] = []
+    return nb
+
+
+## The extractor
+##
 
 class NotebookExtractor(object):
     """ The top-level class for extracting answers from a notebook.
@@ -58,6 +111,7 @@ class NotebookExtractor(object):
             list of question prompts """
         self.question_prompts = self.build_question_prompts(notebook_template_file)
         self.notebooks = notebooks
+        self.usernames = [nb['metadata']['owner'] for nb in notebooks]
         self.include_usernames = include_usernames
         nb_basename = os.path.basename(notebook_template_file)
         self.nb_name_stem = os.path.splitext(nb_basename)[0]
@@ -78,7 +132,7 @@ class NotebookExtractor(object):
                 if prev_prompt is not None:
                     prompts[-1].stop_md = cell_source
                 is_poll = metadata.get('is_poll', 'Reading Journal feedback' in cell_source.split('\n')[0])
-                prompts.append(QuestionPrompt(question_heading=u"",
+                prompts.append(QuestionPrompt(question_heading='',
                                               name=metadata.get('problem', None),
                                               index=len(prompts),
                                               start_md=cell_source,
@@ -90,13 +144,10 @@ class NotebookExtractor(object):
                     prev_prompt = prompts[-1]
                     # if it's the last cell, take everything else
                     if is_final_cell:
-                        prompts[-1].stop_md = u""
+                        prompts[-1].stop_md = ''
                 else:
                     prev_prompt = None
         return prompts
-
-    def gh_username_to_fullname(self, gh_username):
-        return self.users_df[users_df['gh_username'] == gh_username]['Full Name'].iloc[0]
 
     def extract(self):
         """ Filter the notebook at the notebook_URL so that it only contains
@@ -151,13 +202,13 @@ class NotebookExtractor(object):
                 print("{status} {prompt_name}: {username}".format(
                                         status=status.capitalize(),
                                         prompt_name=prompt.name,
-                                        username=self.gh_username_to_fullname(username)))
+                                        username=username))
 
     def write_notebook(self, include_html=True):
         suffix = "_responses_with_names" if self.include_usernames else "_responses"
         nb_name = self.nb_name_stem + suffix
-        output_file = os.path.join(PROCESSED_NOTEBOOK_DIR, nb_name + '.ipynb')
-        html_output = os.path.join(PROCESSED_NOTEBOOK_DIR, nb_name + '.html')
+        output_file = os.path.join(processed_notebook_dir, nb_name + '.ipynb')
+        html_output = os.path.join(processed_notebook_dir, nb_name + '.html')
 
         remove_duplicate_answers = not self.include_usernames
 
@@ -190,7 +241,7 @@ class NotebookExtractor(object):
                 fp.write(html_content)
 
     def write_answer_counts(self):
-        output_file = os.path.join(SUMMARY_DIR, '%s_response_counts.csv' % self.nb_name_stem)
+        output_file = os.path.join(summary_dir, '%s_response_counts.csv' % self.nb_name_stem)
 
         df = pd.DataFrame(
             data=[[u in prompt.answers for u in self.usernames] for prompt in self.question_prompts],
@@ -207,23 +258,21 @@ class NotebookExtractor(object):
         df.to_csv(output_file)
 
     def write_poll_results(self):
+        def user_response_text(username):
+            return NotebookUtils.cell_list_text(prompt.answers.get(username, []))
+
         poll_questions = [prompt for prompt in self.question_prompts if prompt.is_poll]
         for prompt in poll_questions:
             slug = prompt.name.replace(' ', '_').lower()
-            output_file = os.path.join(SUMMARY_DIR, '%s_%s.csv' % (self.nb_name_stem, slug))
+            output_file = os.path.join(summary_dir, '%s_%s.csv' % (self.nb_name_stem, slug))
             print("Writing %s: poll results for %s" % (output_file, prompt.name))
 
-            def user_response_text(username):
-                return NotebookUtils.cell_list_text(prompt.answers.get(username, []))
-
-            df = pd.DataFrame(
-                index=[self.gh_username_to_fullname(name) for name in self.usernames],
-                data=[user_response_text(username) for username in self.usernames],
-                columns=['Response'])
+            os.makedirs(os.path.dirname(output_file), exist_ok=True)
+            df = pd.DataFrame([user_response_text(username) for username in self.usernames],
+                              index=self.usernames, columns=['Response'])
             df.index.name = 'Student'
             df.sort_index(axis=1, inplace=True)
             df = df[df['Response'] != '']
-
             df.to_csv(output_file)
 
 
@@ -325,47 +374,20 @@ class NotebookUtils:
     def cell_list_text(cells):
         return ''.join(s for cell in cells for s in cell['source']).strip()
 
-repos_download_dir = os.path.join('./downloads', REPO_NAME.replace('/', '-'))
-origin_notebook = os.path.join(repos_download_dir, ORIGIN_DIRNAME, nb_name)
-assert os.path.exists(origin_notebook)
 
-def nb_add_metadata(nb, owner=None):
-    if owner: nb['metadata']['owner'] = owner
-    for cell in nb['cells']:
-        if cell['cell_type'] == 'markdown' and cell['source']:
-            if re.match(QUESTION_RE, cell['source'][0]):
-                cell['metadata']['is_question'] = True
-            if re.match(POLL_RE, cell['source'][0]):
-                cell['metadata']['is_poll'] = True
-    return nb
+## Read the notebooks; do the work
+##
 
-def file_owner_from_path(path):
-    return os.path.basename(os.path.dirname(path))
-
-def safe_read_notebook(path, owner=None, clear_outputs=False):
-    with open(path) as f:
-        try:
-            nb = json.load(f)
-        except JSONDecodeError as e:
-            print(path, e)
-            return None
-    nb = nb_add_metadata(nb, owner)
-    if clear_outputs:
-        for cell in nb['cells']:
-            if 'outputs' in cell:
-                cell['outputs'] = []
-    return nb
-
-student_notebooks = [safe_read_notebook(path, owner=file_owner_from_path(path), clear_outputs=CLEAR_OUTPUTS)
-                     for path in glob(os.path.join(repos_download_dir, '*', nb_name))
-                     if file_owner_from_path(path) != ORIGIN_DIRNAME]
-
-student_notebooks = [nb for nb in student_notebooks if nb]
+student_notebooks = list(filter(
+    None.__ne__,
+    (safe_read_notebook(path, owner=file_owner_from_path(path), clear_outputs=CLEAR_OUTPUTS)
+     for path in glob(os.path.join(repos_download_dir, '*', nb_name))
+     if file_owner_from_path(path) != ORIGIN_DIRNAME)))
 
 nbe = NotebookExtractor(origin_notebook, student_notebooks)
 nbe.extract()
 
 # nbe.report_missing_answers()
 nbe.write_notebook(include_html=True)
-# nbe.write_poll_results()
+nbe.write_poll_results()
 # nbe.write_answer_counts()
