@@ -14,6 +14,7 @@ import io
 import json
 import os
 import re
+import string
 import sys
 import urllib
 from collections import OrderedDict
@@ -62,6 +63,13 @@ repos_download_dir = os.path.join('./downloads', repo_name.replace('/', '-'))
 origin_notebook = os.path.join(repos_download_dir, ORIGIN_DIRNAME, nb_name)
 assert os.path.exists(origin_notebook)
 
+student_file = os.path.join('./downloads', repo_name.split('/')[0] + '-students.csv')
+student_df = pd.read_csv(student_file) if os.path.exists(student_file) else pd.DataFrame([], columns=['Student', 'Nickname', 'GitHub'])
+student_df = pd.concat([student_df,
+                        student_df['Full Name'].str.extract('(?P<first>\S+).*?(?P<last>\S+)$', expand=True)
+                        ], axis=1)
+student_df['Name'] = student_df['Nickname'].fillna(student_df['first']).str.cat(student_df['last'], ' ')
+github_id_username_dict = dict(zip(student_df['GitHub'], student_df['Name']))
 
 ## Functions
 ##
@@ -263,13 +271,14 @@ class NotebookExtractor(object):
 
         poll_questions = [prompt for prompt in self.question_prompts if prompt.is_poll]
         for prompt in poll_questions:
-            slug = prompt.name.replace(' ', '_').lower()
+            slug = prompt.name.strip(' .' + string.digits).replace(' ', '_').lower()
             output_file = os.path.join(summary_dir, '%s_%s.csv' % (self.nb_name_stem, slug))
             print("Writing %s: poll results for %s" % (output_file, prompt.name))
 
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
-            df = pd.DataFrame([user_response_text(username) for username in self.usernames],
-                              index=self.usernames, columns=['Response'])
+            df = pd.DataFrame([user_response_text(user_id) for user_id in self.usernames],
+                              index=[github_id_username_dict.get(user_id, user_id) for user_id in self.usernames],
+                              columns=['Response'])
             df.index.name = 'Student'
             df.sort_index(axis=1, inplace=True)
             df = df[df['Response'] != '']
