@@ -16,12 +16,10 @@ import os
 import re
 import string
 import sys
-import urllib
 from collections import OrderedDict
 from copy import deepcopy
 from glob import glob
 from json import JSONDecodeError
-from multiprocessing import Pool
 
 import Levenshtein
 import nbconvert
@@ -29,9 +27,8 @@ import nbformat
 import pandas as pd
 from numpy import argmin
 
-
-## Constants
-##
+# Constants
+#
 
 QUESTION_RE = r'#+ Exercise'
 POLL_RE = r'#+ .*(poll|Notes for the Instructors|Reading Journal Feedback)'
@@ -39,12 +36,12 @@ ORIGIN_DIRNAME = 'origin'
 CLEAR_OUTPUTS = True
 
 
-## Command-line arguments
-##
+# Command-line arguments
+#
 
 # Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
-    sys.argv = ['script', 'sd17spring/ReadingJournal', 'day2_reading_journal.ipynb']
+    sys.argv = ['script', 'sd17spring/ReadingJournal', 'day3_reading_journal.ipynb']
 
 parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
 parser.add_argument("repo", metavar='REPO_NAME', help="GitHub source repo, in format username/repo_name")
@@ -71,11 +68,13 @@ student_df = pd.concat([student_df,
 student_df['Name'] = student_df['Nickname'].fillna(student_df['first']).str.cat(student_df['last'], ' ')
 github_id_username_dict = dict(zip(student_df['GitHub'], student_df['Name']))
 
-## Functions
-##
+# Functions
+#
+
 
 def file_owner_from_path(path):
     return os.path.basename(os.path.dirname(path))
+
 
 def nb_add_metadata(nb, owner=None):
     if owner:
@@ -88,6 +87,7 @@ def nb_add_metadata(nb, owner=None):
                 cell['metadata']['is_question'] = True
                 cell['metadata']['is_poll'] = True
     return nb
+
 
 def safe_read_notebook(path, owner=None, clear_outputs=False):
     with open(path) as f:
@@ -104,8 +104,8 @@ def safe_read_notebook(path, owner=None, clear_outputs=False):
     return nb
 
 
-## The extractor
-##
+# The extractor
+#
 
 class NotebookExtractor(object):
     """ The top-level class for extracting answers from a notebook.
@@ -376,7 +376,7 @@ class NotebookUtils:
         return {
             'cell_type': 'markdown',
             'metadata': {},
-            'source': unicode('#' * heading_level + " " + text)
+            'source': '#' * heading_level + ' ' + text
             }
 
     @staticmethod
@@ -384,8 +384,8 @@ class NotebookUtils:
         return ''.join(s for cell in cells for s in cell['source']).strip()
 
 
-## Read the notebooks; do the work
-##
+# Read the notebooks; do the work
+#
 
 student_notebooks = list(filter(
     None.__ne__,

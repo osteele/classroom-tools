@@ -6,11 +6,11 @@ Create a `*.xlsx` file and `Media` folder that contain the names and photos of s
 suitable for use with [FlashCard Deluxe](http://orangeorapple.com/Flashcards/).
 
 The input is a Course Enrollment HTML page, saved from Chrome with Format="Webpage, complete".
-"""
 
-__author__    = "Oliver Steele"
-__copyright__ = "Copyright 2016, Olin College"
-__license__   = "MIT"
+Author:    Oliver Steele
+Copyright: Copyright 2016, Olin College
+License:   MIT
+"""
 
 # Code conventions:
 # - this module is written in workbook style, not OO style
@@ -24,7 +24,6 @@ import re
 import shutil
 import sys
 import unicodedata
-from collections import namedtuple
 
 try:
     import pandas as pd
@@ -67,17 +66,20 @@ CLASS_NAMES = {
     }
 
 
-## Utility functions
-##
+# Utility functions
+#
 
 def normalize_name(s):
     return unicodedata.normalize('NFD', s).lower()
 
+
 def name_key_series(fn_series, ln_series):
     return list(zip(fn_series.map(normalize_name), ln_series.map(normalize_name)))
 
+
 def inner_html(e):
     return ''.join(str(child) for child in e.children).strip()
+
 
 # I couldn't get panda.from_html working, and it came with even more
 # package dependencies.
@@ -93,8 +95,9 @@ def dataframe_from_html(table):
     data = [[inner_html(td) for td in row] for row in data_rows]
     return pd.DataFrame.from_records(data, columns=col_names)
 
-## Create a dictionary mapping registrar names to student names
-##
+
+# Create a dictionary mapping registrar names to student names
+#
 
 nickname_lines = open(args.nicknames).readlines() if args.nicknames else [["First “Nickname” Last"]]
 nickname = pd.DataFrame(nickname_lines)[0].str.extractall(r'(?P<fn>.+?)\s*["“](?P<nickname>.+)["”]\s*(?P<ln>.+)')
@@ -125,8 +128,8 @@ html_df
 # TODO read this from html_df instead of duplicating the select?
 student_elt = html_content.select('#pg0_V_ggClassList tbody td img')
 student = (pd.Series([e.text.strip() for e in student_elt])
-    .str.replace('_', ' ')
-    .str.extract(r'(?P<last_name>.+?), (?P<first_name>\S+)', expand=True))
+           .str.replace('_', ' ')
+           .str.extract(r'(?P<last_name>.+?), (?P<first_name>\S+)', expand=True))
 
 student['year'] = html_df['Class'].map(CLASS_NAMES)
 student['status'] = html_df['Status'].str.extract(r'(\w+)', expand=False)
@@ -145,8 +148,9 @@ df = pd.DataFrame({"Text 2": student.fullname, "Picture 1": student.image_dst})
 df["Text 1"] = ""
 df.head()
 
-## Create HTML
-##
+
+# Create HTML
+#
 
 env = Environment()
 
@@ -187,6 +191,7 @@ HTML_TEMPLATE_S = """\
 """
 html_template = env.from_string(HTML_TEMPLATE_S)
 
+
 def write_html():
     with open(output_path, 'w') as f:
         title = "{} §{} {} {}".format(course_number, course_section, course_season, course_year)
@@ -194,6 +199,7 @@ def write_html():
             title=title,
             image_relpath_base=os.path.split(media_dst_dir)[1],
             students=(row for _, row in student.iterrows())))
+
 
 extn = os.path.splitext(output_path)[1]
 if extn == '.csv':
@@ -210,8 +216,9 @@ else:
     raise Exception("Missing file extension: %s" % output_path)
 print('Wrote', output_path)
 
-## Create Flashcard files
-##
+
+# Create Flashcard files
+#
 
 # copy media files
 os.makedirs(media_dst_dir, exist_ok=True)

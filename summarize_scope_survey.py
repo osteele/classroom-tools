@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
-"Create an HTML report from a SCOPE P&S survey."
+"""
+Create an HTML report from a SCOPE P&S survey.
 
-__author__ = "Oliver Steele"
-__copyright__ = "Copyright 2016, Olin College"
-__license__ = "MIT"
+Author: Oliver Steele
+Copyright: Copyright 2016, Olin College
+License: MIT
+"""
 
 # Code conventions:
 # - this module is written in workbook style, not OO style
@@ -160,6 +162,7 @@ PARTICIPANT_TEMPLATE_TEXT = """\
 
 env = Environment()
 
+
 def dataframe_filter(df, **kwargs):
     """A Jinja filter that turns a Pandas DataFrame into HTML, with the specified options and with
     the Pandas display option temporarily set to allow full-width text in the cells."""
@@ -172,13 +175,11 @@ def dataframe_filter(df, **kwargs):
     finally:
         pd.set_option(pd_display_max_colwidth_key, saved_max_colwidth)
 
+
 env.filters['dataframe'] = dataframe_filter
 env.filters['dataframe_type'] = lambda df: df.dtypes[0].name
 
 participant_template = env.from_string(PARTICIPANT_TEMPLATE_TEXT)
-
-# nested_peer_review_df.loc['Jane'][nested_peer_review_df.columns.levels[0][0]].dtypes[0].name
-# nested_peer_review_df.columns.levels[0][0]
 
 with open(args.output, 'w') as report_file:
     report_file.write(env.from_string(HTML_HEADER).render(survey_name=survey_name))
