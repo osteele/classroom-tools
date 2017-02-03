@@ -49,9 +49,9 @@ This script downloads files into the directory structure:
 
 ```
 downloads/
-  ${github_organization}-${github_repo}/
-    ${student_github_id}/
-       files…
+└── ${github_organization}-${github_repo}/
+    └── ${student_github_id}/
+        └── files…
 ```
 
 Only files that are different from the version in the origin repository are downloaded.
@@ -74,12 +74,12 @@ This script expects a directory structure created by the `download_repo_fork_fil
 
 ```
 build/${github_organization}-${github_repo}
-  processed_notebooks/
-    notebook_name.ipynb
-  summaries/
-    poll1.csv
-    poll2.csv
-    …
+├── processed_notebooks/
+│   └── notebook_name.ipynb
+└── summaries/
+    ├── poll1.csv
+    ├── poll2.csv
+    └── …
 ```
 
 ## Under Development
@@ -92,11 +92,11 @@ This script expects a directory structure created by the `download_repo_fork_fil
 
 ```
 downloads/
-  ${github_organization}-${github_repo}-combined/
-    ${filename_without_extension}/
-      ${student1_github_login}.${filename_extension}
-      ${student2_github_login}.${filename_extension}
-      …
+└── ${github_organization}-${github_repo}-combined/
+    └── ${filename_without_extension}/
+        ├── ${student1_github_login}.${filename_extension}
+        ├── ${student2_github_login}.${filename_extension}
+        └── …
 ```
 
 The name of the repository is currently hardcoded into the script.
