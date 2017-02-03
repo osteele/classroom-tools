@@ -18,7 +18,8 @@ os.makedirs(dst_dir, exist_ok=True)
 for dir in student_dirs:
     fname = os.path.join(REPO_DIR, dir, NOTEBOOK_NAME)
     if not os.path.exists(fname):
-        if False: print('missing: %s' % (fname))
+        if False:
+            print('missing: %s' % (fname))
     elif filecmp.cmp(fname, master_file):
         print('unchanged: %s' % fname)
     else:

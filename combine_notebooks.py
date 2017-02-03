@@ -208,9 +208,9 @@ class NotebookExtractor(object):
                                 if status != 'answered')
             for username, status in unanswered:
                 print("{status} {prompt_name}: {username}".format(
-                                        status=status.capitalize(),
-                                        prompt_name=prompt.name,
-                                        username=username))
+                    status=status.capitalize(),
+                    prompt_name=prompt.name,
+                    username=username))
 
     def write_notebook(self, include_html=True):
         suffix = "_responses_with_names" if self.include_usernames else "_responses"

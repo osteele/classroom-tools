@@ -7,13 +7,10 @@ import argparse
 import os
 import re
 import sys
-from collections import defaultdict
-from functools import reduce
-from multiprocessing import Pool
 
 import pandas as pd
 import yaml
-from github import Github, GithubException
+from github import Github
 
 DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
 IGNORE_FILES_RE = re.compile(r'.*\.(bak|csv|exe|jff|jpe?g|JE?PG|png|pyc|svg)|.*~|\.gitignore|FETCH_HEAD')
@@ -50,7 +47,9 @@ student_repos = sorted((repo for repo in source_repo.get_forks()
                        key=lambda repo:repo.owner.login.lower())
 student_login_names = {repo.owner.login: (repo.owner.name or repo.owner.login) for repo in student_repos}
 
-## File commit dates
+
+# File commit dates
+#
 
 def is_merge_commit(commit):
     return len(commit.parents) > 1
@@ -71,12 +70,10 @@ def get_repo_file_commit_mod_times(repo):
 student_file_mod_times = [item
                           for repo_file_commit_mod_times in map(get_repo_file_commit_mod_times, student_repos)
                           for item in repo_file_commit_mod_times]
-student_file_mod_times
 
-# def exercise_group(filename):
-#     return os.path.dirname(filename) or filename
 
-## File hashes
+# File hashes
+#
 
 def collect_repo_file_hashes(repo):
     """Return a dict filename -> git_hash"""
@@ -84,13 +81,14 @@ def collect_repo_file_hashes(repo):
     return {tree.path: tree.sha
             for tree in repo.get_git_tree(latest_commit.sha, recursive=True).tree}
 
-master_file_hashes = collect_repo_file_hashes(source_repo); master_file_hashes
+master_file_hashes = collect_repo_file_hashes(source_repo)
 
 # Build a table of hashes of all the student files, to test for duplicates against the source
 
 def get_repo_and_file_hashes(repo):
     print('get file hashes for', repo.owner.login)
     return repo, collect_repo_file_hashes(repo)
+
 
 student_file_hashes = {(repo.owner.login, filename): git_hash
                        for repo, file_hashes in map(get_repo_and_file_hashes, student_repos)
@@ -101,6 +99,7 @@ student_file_records = \
     [(login, filename, mod_time) for login, filename, mod_time in student_file_mod_times
      if student_file_hashes.get((login, filename), 1) != master_file_hashes.get(filename, None)
      and not re.match(IGNORE_FILES_RE, filename)]
+
 
 def filename_sort_key(f):
     return tuple(int(s) if re.match(r'\d+', s) else s for s in re.split(r'(\d+)', f))
