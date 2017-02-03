@@ -30,18 +30,18 @@ Depending on how Python is installed, you may need to prefix `pip3 install …` 
 
 ## Usage
 
-`REPO_NAME` is a GitHub repository full name, in the format *$GitHub_organization*/*$repo_short_name*.
+`REPO_NAME` below is a GitHub repository full name, in the format *$GitHub_organization*/*$repo_short_name*.
 
 Invoke these with `--help` to see additional options.
 
-### `./create_course_enrollment_flashcards.py HTML_FILE`
+### `./scripts/create_course_enrollment_flashcards.py HTML_FILE`
 
 Turns a Course Enrollment page downloaded from the Portal into:
 
 1. A file and directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/)
 2. An HTML "contact sheet" page, that displays all the student names and faces in a grid.
 
-### `./download_repo_fork_files.py REPO_NAME`
+### `./scripts/download_repo_fork_files.py REPO_NAME`
 
 Download all the forks of a repo. Suitable for collecting assignments.
 
@@ -58,15 +58,15 @@ Only files that are different from the version in the origin repository are down
 
 This script can also download all the individual copies of a [GitHub Classroom](https://classroom.github.com) assignment, even though these are not forks. Use the `--classroom` option to invoke it in this mode.
 
-### `./github_fork_file_mod_times.py REPO_NAME`
+### `./scripts/github_fork_file_mod_times.py REPO_NAME`
 
 Create a spreadsheet that contains the student names and file modification dates, for each file in a forked repository.
 
-### `./summarize_scope_survey.py CSV_FILE`
+### `./scripts/summarize_scope_survey.py CSV_FILE`
 
 Give a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
 
-### `./combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
+### `./scripts/combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
 
 Combine notebooks into a single notebook.
 
@@ -84,7 +84,7 @@ build/${github_organization}-${github_repo}
 
 ## Under Development
 
-### `./collect_notebooks.py`
+### `./scripts/collect_notebooks.py`
 
 Collect downloaded notebooks into a common directory.
 
@@ -104,8 +104,19 @@ The name of the repository is currently hardcoded into the script.
 This script is derived from,
 and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
 
+## Folder Organization
 
-## Other Files
+`build` (not committed)
+: Files that are synthesized (as opposed to created) are placed here.
 
-`utils.py`
+`config` (not committed)
+: Optional configuration files.
+
+`downloads` (not committed)
+: Scripts look here for manually downloaded files. Scripts that download files also place them here.
+
+`scripts`
+: Script functions, invoked from the command line.
+
+`lib`
 : Utility functions, potentially shared by multiple scripts.
