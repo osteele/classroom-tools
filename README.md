@@ -101,9 +101,8 @@ downloads/
 
 The name of the repository is currently hardcoded into the script.
 
-
 This script is derived from,
-and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from (paulruvolo/SoftDesSp16Prep)[https://github.com/paulruvolo/SoftDesSp16Prep]).
+and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
 
 
 ## Other Files
