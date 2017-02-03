@@ -5,18 +5,16 @@
 
 import argparse
 import base64
-import hashlib
-import itertools
 import os
 import re
 import sys
 
-from github import Github, GithubException
-from utils import collect_repo_hashes, get_file_git_hash
+from github import Github
 
+from utils import get_file_git_hash
 
-## Constants
-##
+# Constants
+#
 
 DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
 ORIGIN_DIRNAME = 'origin'
@@ -24,8 +22,8 @@ GH_TOKEN = os.environ['GITHUB_API_TOKEN']
 TEAM_NAMES = ['instructors', 'faculty', 'ninjas']
 
 
-## Command-line arguments
-##
+# Command-line arguments
+#
 
 # Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
@@ -48,7 +46,12 @@ if args.flatten is None:
 if args.ignore_images is None:
     args.ignore_images = args.classroom
 
+
+# Download files
+#
+
 DOWNLOAD_PATH = os.path.join('downloads', args.repo.replace('/', '-'))
+
 
 def download_contents(repo, dst_path, skip_same_as_origin=True):
     items = [item
@@ -85,8 +88,10 @@ def download_contents(repo, dst_path, skip_same_as_origin=True):
             with open(dst_name, 'wb') as f:
                 f.write(base64.b64decode(blob.content))
 
+
 def repo_owner_login(repo):
     return repo.name[len(origin.name + '-'):] if args.classroom else repo.owner.login
+
 
 gh = Github(GH_TOKEN)
 origin = gh.get_repo(args.repo)
@@ -106,8 +111,10 @@ repos = (
 repos = [repo for repo in repos if repo.owner.login not in instructor_logins and repo_owner_login(repo) not in instructor_logins]
 repos = sorted(repos, key=repo_owner_login)
 
-if args.match: repos = [repo for repo in repos if args.match in repo_owner_login(repo)]
-if args.limit: repos = repos[:args.limit]
+if args.match:
+    repos = [repo for repo in repos if args.match in repo_owner_login(repo)]
+if args.limit:
+    repos = repos[:args.limit]
 
 origin_file_hashes = {item.sha for commit in origin.get_commits()
                       for item in origin.get_git_tree(commit.sha, recursive=True).tree}
