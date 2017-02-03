@@ -1,8 +1,6 @@
-
+#!/usr/bin/env python3
 # coding: utf-8
 
-# # FOCS Homework Times
-#
 # Collect times that each homework was submitted.
 
 import argparse

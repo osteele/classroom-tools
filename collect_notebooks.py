@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import filecmp
 import os
 import shutil

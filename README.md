@@ -34,14 +34,14 @@ Depending on how Python is installed, you may need to prefix `pip3 install …` 
 
 Invoke these with `--help` to see additional options.
 
-### `python3 create_course_enrollment_flashcards.py HTML_FILE`
+### `./create_course_enrollment_flashcards.py HTML_FILE`
 
 Turns a Course Enrollment page downloaded from the Portal into:
 
 1. A file and directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/)
 2. An HTML "contact sheet" page, that displays all the student names and faces in a grid.
 
-### `python3 download_repo_fork_files.py REPO_NAME`
+### `./download_repo_fork_files.py REPO_NAME`
 
 Download all the forks of a repo. Suitable for collecting assignments.
 
@@ -58,15 +58,15 @@ Only files that are different from the version in the origin repository are down
 
 This script can also download all the individual copies of a [GitHub Classroom](https://classroom.github.com) assignment, even though these are not forks. Use the `--classroom` option to invoke it in this mode.
 
-### `python3 github_fork_file_mod_times.py REPO_NAME`
+### `./github_fork_file_mod_times.py REPO_NAME`
 
 Create a spreadsheet that contains the student names and file modification dates, for each file in a forked repository.
 
-### `python3 summarize_scope_survey.py CSV_FILE`
+### `./summarize_scope_survey.py CSV_FILE`
 
 Give a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
 
-### `python3 combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
+### `./combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
 
 Combine notebooks into a single notebook.
 
@@ -84,7 +84,7 @@ build/${github_organization}-${github_repo}
 
 ## Under Development
 
-### `python3 collect_notebooks.py`
+### `./collect_notebooks.py`
 
 Collect downloaded notebooks into a common directory.
 
