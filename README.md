@@ -173,8 +173,11 @@ application. The current style may not be compatible with that.
 
 ### Directory Organization
 
+`classroom_tools`
+: Utility functions that aren't scripts; potentially shared by multiple scripts.
+
 `scripts`
 : Script functions, invoked from the command line.
 
-`lib`
-: Utility functions, potentially shared by multiple scripts.
+`templates`
+: HTML jinja2 template files
