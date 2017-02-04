@@ -35,9 +35,29 @@ except ImportError as e:
 
 # Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
-    sys.argv = ['script', 'downloads/ENGR2510-1.html', '-d', 'build', '--nicknames', 'config/student-nicknames.txt']
+    __file__ = '.'
+    sys.argv = [__file__, '../downloads/ENGR2510-1.html', '-d', '../build', '--nicknames', '../config/student-nicknames.txt']
     sys.argv += ['--format', 'html']
 
+
+# Constants
+#
+
+CLASS_NAMES = {
+    'FF': 'First-year',
+    'SO': 'Sophomore',
+    'JR': 'Junior',
+    'SR': 'Senior',
+    'TF': 'Transfer',
+    'XR': 'Cross-registered'
+}
+
+RESIZE_IMAGES = None  # there is no current way to set this
+
+HTML_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '../templates/contact_sheet.html')
+
+
+# Command-line arguments
 parser = argparse.ArgumentParser(description="Create a Flashcard file and directory for students enrolled in a course.")
 parser.add_argument("-d", "--output-dir", help="Output directory. Defaults to HTML_FILE's directory.")
 parser.add_argument("-o", "--output", help="Output file. Should end in .csv or .xlsl.")
@@ -49,21 +69,10 @@ parser.add_argument("--nicknames", default="config/student-nicknames.txt", help=
 parser.add_argument("HTML_FILE")
 args = parser.parse_args(sys.argv[1:])
 
-RESIZE_IMAGES = None  # not currently in use
-
 if args.service == "dropbox":
     assert not args.output, "Error: Use at most one of --service and --output-dir"
     args.output_dir = os.path.expanduser("~/Dropbox/Apps/Flashcards Deluxe")
     assert os.path.isdir(args.output_dir), "Error: ~s does not exist" % args.output_dir
-
-CLASS_NAMES = {
-    'FF': 'First-year',
-    'SO': 'Sophomore',
-    'JR': 'Junior',
-    'SR': 'Senior',
-    'TF': 'Transfer',
-    'XR': 'Cross-registered'
-}
 
 
 # Utility functions
@@ -98,6 +107,9 @@ def dataframe_from_html(table):
 
 # Create a dictionary mapping registrar names to student names
 #
+# In lieu of documentation, run this with the Atom Hydrogen plug-in or the Visual Studio Code
+# Python extension, and evaluate the *.head() lines to see the table shapes and contents at
+# each point in the computation.
 
 nickname_lines = open(args.nicknames).readlines() if args.nicknames else [["First “Nickname” Last"]]
 nickname = pd.DataFrame(nickname_lines)[0].str.extractall(r'(?P<fn>.+?)\s*["“](?P<nickname>.+)["”]\s*(?P<ln>.+)')
@@ -154,64 +166,30 @@ df.head()
 
 env = Environment()
 
-HTML_TEMPLATE_S = """\
-<!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeplate-starter-kit/3.0.2/css/typeplate.css">
-        <title>{{ title }}</title>
-        <style>
-            @media screen {
-              body { margin: 5pt auto; max-width: 10.5in; }
-              h1 { margin: 10px; }
-            }
-            @media print {
-              * { margin: 0 !important; padding: 0 !important; }
-              body { width: 12in; margin: 5px; transform: scale(.7); }
-              h1 { margin-bottom: 1.5em !important; }
-            }
-            h1 { font-size: 250%; text-align: center; }
-            figure { display: inline-block; margin: 10px; vertical-align:top; }
-            img { width: 100px; height: 133px; object-fit: contain; }
-            figcaption { text-align: center; width: 100px; word-wrap: break-word; font-size: smaller; font-style:italic; line-height: 1.25em; }
-        </style>
-    </head>
-    <body>
-        <h1>{{ title }}</h1>
-        {% for student in students %}
-            <figure>
-                <img src="./{{ image_relpath_base|urlencode }}/{{ student.image_dst|urlencode }}" alt="{{ student.fullname }}"/>
-                <figcaption>{{ student.fullname }}</figcaption>
-            </figure>
-        {% endfor %}
-    </body>
-</html>
-"""
-html_template = env.from_string(HTML_TEMPLATE_S)
+html_template = env.from_string(open(HTML_TEMPLATE_PATH).read())
 
 
+# uses globals
 def write_html():
     with open(output_path, 'w') as f:
         title = "{} §{} {} {}".format(course_number, course_section, course_season, course_year)
         f.write(html_template.render(
             title=title,
             image_relpath_base=os.path.split(media_dst_dir)[1],
-            students=(row for _, row in student.iterrows())))
+            students=[row for _, row in student.iterrows()]))
 
 
-extn = os.path.splitext(output_path)[1]
-if extn == '.csv':
+output_extn = os.path.splitext(output_path)[1]
+if output_extn == '.csv':
     df.to_csv(output_path)
-elif extn == '.html':
+elif output_extn == '.html':
     write_html()
-elif extn == '.xlsx':
+elif output_extn == '.xlsx':
     writer = pd.ExcelWriter(output_path, engine='xlsxwriter')
     df.to_excel(writer, index=False)
     writer.save()
-elif extn:
-    raise Exception("Unknown file extension: %s" % extn[1:])
+elif output_extn:
+    raise Exception("Unknown file extension: %s" % output_extn[1:])
 else:
     raise Exception("Missing file extension: %s" % output_path)
 print('Wrote', output_path)

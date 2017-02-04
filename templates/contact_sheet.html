@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.8/css/materialize.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/typeplate-starter-kit/3.0.2/css/typeplate.css">
+    <style>
+      @media screen {
+        body { margin: 5pt auto; max-width: 10.5in; }
+        h1 { margin: 10px; }
+      }
+      @media print {
+        * { margin: 0 !important; padding: 0 !important; }
+        body { width: 12in; margin: 5px; transform: scale(.7); }
+        h1 { margin-bottom: 1.5em !important; }
+      }
+      h1 { font-size: 250%; text-align: center; }
+      figure { display: inline-block; margin: 10px; vertical-align:top; }
+      img { width: 100px; height: 133px; object-fit: contain; }
+      figcaption { text-align: center; width: 100px; word-wrap: break-word; font-size: smaller; font-style:italic; line-height: 1.25em; }
+    </style>
+  </head>
+  <body>
+    <h1>{{ title }}</h1>
+    {% for student in students %}
+      <figure>
+        <img src="./{{ image_relpath_base | urlencode }}/{{ student.image_dst | urlencode }}"
+             alt="{{ student.fullname }}"/>
+        <figcaption>{{ student.fullname }}</figcaption>
+      </figure>
+    {% endfor %}
+  </body>
+</html>
