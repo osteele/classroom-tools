@@ -47,9 +47,9 @@ To increase the limit, [create a personal GitHub API token](https://github.com/b
 and set the `GITHUB_API_TOKEN` environment variable to this value.
 
 For example, my macOS and Ubuntu shells are set to **zsh**, so my startup files include `~/.zshenv`.
-My `~/.zshenv` includes this line:
+My `~/.zshenv` includes this line (where `xxxxxxxx` is my personal GitHub API token):
 
-    export GITHUB_API_TOKEN=axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0
+    export GITHUB_API_TOKEN=xxxxxxxx
 
 
 ## Usage
@@ -63,14 +63,15 @@ Invoke a script with `--help` to see options that aren't listed below.
 The scripts assume the following directory organization.
 These subdirectories are not committed to the repository.
 
-* `build`
-: Files that are synthesized (as opposed to created) are placed here.
-
-* `config`
-: Optional configuration files.
-
-* `downloads`
-: Scripts look here for manually downloaded files. Scripts that download files also place them here.
+```
+./
+├── build
+│     Files that are created by script (as opposed to downloaded) are placed here.
+├── config – optional configuration files
+│     student-nicknames.txt
+└── downloads
+      Scripts look here for manually downloaded files. Scripts that download files also place them here.
+```
 
 `REPO_NAME` is a GitHub repository full name, in the format *$GitHub_organization*/*$repo_short_name*.
 
@@ -90,7 +91,7 @@ Download all the forks of a repo. Suitable for collecting assignments.
 This script downloads files into the directory structure:
 
 ```
-downloads/
+./downloads/
 └── ${github_organization}-${github_repo}/
     └── ${student_github_id}/
         └── files…
@@ -115,13 +116,14 @@ Combine notebooks into a single notebook.
 This script expects a directory structure created by the `download_repo_fork_files` script. It creates:
 
 ```
-build/${github_organization}-${github_repo}
+./build/${github_organization}-${github_repo}
 ├── processed_notebooks/
 │   └── notebook_name.ipynb
 └── summaries/
     ├── poll1.csv
     ├── poll2.csv
-    └── …
+    ├── …
+    └── poll${n}.csv
 ```
 
 #### `./scripts/collect_notebooks.py` (under development)
@@ -131,12 +133,13 @@ Collect downloaded notebooks into a common directory.
 This script expects a directory structure created by the `download_repo_fork_files` script. It creates:
 
 ```
-downloads/
+./downloads/
 └── ${github_organization}-${github_repo}-combined/
     └── ${filename_without_extension}/
         ├── ${student1_github_login}.${filename_extension}
         ├── ${student2_github_login}.${filename_extension}
-        └── …
+        ├── …
+        └── ${student${n}_github_login}.${filename_extension}
 ```
 
 The name of the repository is currently hardcoded into the script.
@@ -173,11 +176,15 @@ application. The current style may not be compatible with that.
 
 ### Directory Organization
 
-`classroom_tools`
-: Utility functions that aren't scripts; potentially shared by multiple scripts.
-
-`scripts`
-: Script functions, invoked from the command line.
-
-`templates`
-: HTML jinja2 template files
+```
+classroom-tools/
+├── build – not committed to the repo
+├── config – not committed to the repo
+├── downloads – not committed to the repo
+├── classroom_tools
+│     Utility functions that aren't scripts; potentially shared by multiple scripts.
+├── scripts
+│     Script functions, invoked from the command line.
+└── templates
+      HTML jinja2 template files
+```
