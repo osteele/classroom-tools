@@ -1,5 +1,11 @@
-beautifulsoup4>=4.4.1
 Jinja2>=2.8
+pandas>=0.18.0
 PyGithub>=1.29
 PyYAML>=3.11
-pandas>=0.18.0
+
+# for create_course_enrollment_flashcards:
+beautifulsoup4>=4.4.1
+
+# for combine_notebooks:
+nbconvert>=5.1.1
+python-Levenshtein>=0.12.0
