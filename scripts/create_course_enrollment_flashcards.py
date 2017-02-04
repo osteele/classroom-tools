@@ -63,7 +63,7 @@ CLASS_NAMES = {
     'SR': 'Senior',
     'TF': 'Transfer',
     'XR': 'Cross-registered'
-    }
+}
 
 
 # Utility functions

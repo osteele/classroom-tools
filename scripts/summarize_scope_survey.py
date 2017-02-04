@@ -164,9 +164,11 @@ env = Environment()
 
 
 def dataframe_filter(df, **kwargs):
-    """A Jinja filter that turns a Pandas DataFrame into HTML, with the specified options and with
-    the Pandas display option temporarily set to allow full-width text in the cells."""
+    """A Jinja filter that turns a Pandas DataFrame into HTML.
 
+    Keyword arguments are passed to DataFrame.to_html.
+    The Pandas display option is dynamically set to allow full-width text in the cells.
+    """
     pd_display_max_colwidth_key = 'display.max_colwidth'
     saved_max_colwidth = pd.get_option(pd_display_max_colwidth_key)
     try:

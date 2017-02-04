@@ -28,9 +28,7 @@ Python 3.5.2 :: Anaconda custom (x86_64)
 
 2\. Install required Python packages:
 
-``` bash
-$ pip3 install -r requirements.txt
-```
+    $ pip3 install -r requirements.txt
 
 Depending on how Python is installed, you may need to prefix `pip3 install …` by `sudo`.
 
@@ -130,16 +128,29 @@ and documented at, [osteele/assignment-tools](https://github.com/osteele/assignm
 
 ## Contributing
 
-These scripts are written in a notebook-like style, for easy development with the [Hydrogen Atom plugin-in](https://atom.io/packages/hydrogen) and the [Python Visual Studio Code extension](https://github.com/DonJayamanne/pythonVSCode/wiki/Jupyter-(IPython)).
+Some things to work on are listed [here](https://github.com/olin-computing/classroom-tools/issues).
+
+
+## Style
+
+With exceptions listed in `setup.cfg`, code should conform to [PEP8](https://www.python.org/dev/peps/pep-0008/), [PEP257](https://www.python.org/dev/peps/pep-0257/), and the [Google Python Style Guide](http://google.github.io/styleguide/pyguide.html).
+
+You can verify code against these style guides via:
+
+    $ pip3 install -r requirements-dev.txt  # once
+    $ flake8 scripts                        # before each commit
+
+or by setting up a [git pre-commit hook](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to run the latter command.
+
+These scripts are written in a Jupyter-notebook-like style, for easy development with the [Hydrogen Atom plugin-in](https://atom.io/packages/hydrogen) and the [Python Visual Studio Code extension](https://github.com/DonJayamanne/pythonVSCode/wiki/Jupyter-(IPython)).
 
 Specifically, they are light on functions and heavy on global variables.
 
 This is an experiment, and may not have legs.
 For example, it would be nice to be able to re-organize the scripts as modules,
 and invoke them as subcommands from a single CLI entry point, or make them available to a web or desktop
-application. I'm not sure whether the current style is compatible with that.
+application. The current style may not be compatible with that.
 
-Issues are listed [here](https://github.com/olin-computing/classroom-tools/issues).
 
 ### Directory Organization
 

@@ -61,7 +61,8 @@ origin_notebook = os.path.join(repos_download_dir, ORIGIN_DIRNAME, nb_name)
 assert os.path.exists(origin_notebook)
 
 student_file = os.path.join('./downloads', repo_name.split('/')[0] + '-students.csv')
-student_df = pd.read_csv(student_file) if os.path.exists(student_file) else pd.DataFrame([], columns=['Student', 'Nickname', 'GitHub'])
+student_df = (pd.read_csv(student_file) if os.path.exists(student_file)
+              else pd.DataFrame([], columns=['Student', 'Nickname', 'GitHub']))
 student_df = pd.concat([student_df,
                         student_df['Full Name'].str.extract('(?P<first>\S+).*?(?P<last>\S+)$', expand=True)
                         ], axis=1)
@@ -108,15 +109,15 @@ def safe_read_notebook(path, owner=None, clear_outputs=False):
 #
 
 class NotebookExtractor(object):
-    """ The top-level class for extracting answers from a notebook.
-        TODO: add support multiple notebooks
+    """The top-level class for extracting answers from a notebook.
+
+    TODO: add support multiple notebooks
     """
 
     MATCH_THRESH = 10  # maximum edit distance to consider something a match
 
     def __init__(self, notebook_template_file, notebooks, include_usernames=False):
-        """ Initialize with the specified notebook URLs and
-            list of question prompts """
+        """Initialize with the specified notebook URLs and list of question prompts."""
         self.question_prompts = self.build_question_prompts(notebook_template_file)
         self.notebooks = notebooks
         self.usernames = [nb['metadata']['owner'] for nb in notebooks]
@@ -125,8 +126,10 @@ class NotebookExtractor(object):
         self.nb_name_stem = os.path.splitext(nb_basename)[0]
 
     def build_question_prompts(self, notebook_template_file):
-        """Returns a list of `QuestionPrompt`. Each cell with metadata `is_question` truthy
-        produces an instance of `QuestionPrompt`."""
+        """Return a list of `QuestionPrompt`.
+
+        Each cell with metadata `is_question` truthy produces an instance of `QuestionPrompt`.
+        """
         with open(notebook_template_file, 'r') as fid:
             self.template = nb_add_metadata(json.load(fid))
 
@@ -158,10 +161,7 @@ class NotebookExtractor(object):
         return prompts
 
     def extract(self):
-        """ Filter the notebook at the notebook_URL so that it only contains
-            the questions and answers to the reading.
-        """
-
+        """Filter the notebook at the notebook_URL so that it only contains the questions and answers to the reading."""
         nbs = {nb['metadata']['owner']: nb for nb in self.notebooks}
 
         for prompt in self.question_prompts:
@@ -287,14 +287,13 @@ class NotebookExtractor(object):
 
 class QuestionPrompt(object):
     def __init__(self, question_heading, start_md, stop_md, name=None, index=None, is_poll=False, is_optional=None):
-        """ Initialize a question prompt with the specified
-            starting markdown (the question), and stopping
-            markdown (the markdown from the next content
-            cell in the notebook).  To read to the end of the
-            notebook, set stop_md to the empty string.  The
-            heading to use in the summary notebook before
-            the extracted responses is contined in question_heading.
-            To omit the question heading, specify the empty string.
+        """Initialize a question prompt.
+
+        Initialize a question prompt with the specified starting markdown (the question), and stopping
+        markdown (the markdown from the next content cell in the notebook).  To read to the end of the
+        notebook, set stop_md to the empty string.  The heading to use in the summary notebook before
+        the extracted responses is contined in question_heading.
+        To omit the question heading, specify the empty string.
         """
         if is_optional is None and start_md:
             is_optional = bool(re.search(r'optional', start_md.split('\n')[0], re.I))
@@ -337,10 +336,10 @@ class QuestionPrompt(object):
                           cells,
                           matching_threshold,
                           suppress_non_answer_cells=False):
-        """ Returns a list of cells that most closely match
-            the question prompt.  If no match is better than
-            the matching_threshold, the empty list will be
-            returned. """
+        """Return a list of cells that most closely match the question prompt.
+
+        If no match is better than the matching_threshold, the empty list will be returned.
+        """
         return_value = []
         distances = [Levenshtein.distance(self.start_md, ''.join(cell['source']))
                      for cell in cells]
@@ -366,18 +365,18 @@ class QuestionPrompt(object):
         return return_value
 
 
-class NotebookUtils:
+class NotebookUtils(object):
     @staticmethod
     def markdown_heading_cell(text, heading_level):
-        """ A convenience function to return a markdown cell
-            with the specified text at the specified heading_level.
-            e.g. mark_down_heading_cell('Notebook Title','#')
+        """Create a Markdown cell with the specified text at the specified heading_level.
+
+        E.g. mark_down_heading_cell('Notebook Title','#')
         """
         return {
             'cell_type': 'markdown',
             'metadata': {},
             'source': '#' * heading_level + ' ' + text
-            }
+        }
 
     @staticmethod
     def cell_list_text(cells):

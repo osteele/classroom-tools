@@ -35,7 +35,8 @@ repo_config = config.get(args.repo) or next((rc for rc in config.values() if rc[
 
 SOURCE_REPO_NAME = repo_config.get('source_repo', args.repo)
 ORGANIZATION_NAME = SOURCE_REPO_NAME.split('/')[0]
-INSTRUCTOR_LOGINS = repo_config.get('instructors', [])  # instructors who have forked the repo, but are not in the GitHub tea
+# instructors who have forked the repo, but are not in the GitHub team:
+INSTRUCTOR_LOGINS = repo_config.get('instructors', [])
 DROPPED_LOGINS = repo_config.get('dropped', [])  # students who have forked the repo, but are not in the course
 
 team = next((team for team in gh.get_organization(ORGANIZATION_NAME).get_teams() if team.name == 'Instructors'), None)
@@ -44,19 +45,24 @@ instructors = list(team.get_members()) if team else []
 source_repo = gh.get_repo(SOURCE_REPO_NAME)
 student_repos = sorted((repo for repo in source_repo.get_forks()
                         if repo.owner not in instructors and repo.owner.login not in INSTRUCTOR_LOGINS + DROPPED_LOGINS),
-                       key=lambda repo:repo.owner.login.lower())
+                       key=lambda repo: repo.owner.login.lower())
 student_login_names = {repo.owner.login: (repo.owner.name or repo.owner.login) for repo in student_repos}
 
 
 # File commit dates
 #
 
+
 def is_merge_commit(commit):
     return len(commit.parents) > 1
 
+
 def get_repo_file_commit_mod_times(repo):
-    """Return a list [(repo_owner_login, filename, last_modified)] of the last modified date of each file
-    modified by the repo owner."""
+    """Return last-modified times of all the files in the repo.
+
+    Return a list [(repo_owner_login, filename, last_modified)] of the last modified date of each file
+    modified by the repo owner.
+    """
     print('fetching commits for', student_login_names[repo.owner.login])
     owner_commits = (commit for commit in repo.get_commits()
                      if commit.author == repo.owner
@@ -66,6 +72,7 @@ def get_repo_file_commit_mod_times(repo):
                       for commit in owner_commits
                       for file in commit.files}
     return [(repo.owner.login, *data) for data in file_mod_times.items()]
+
 
 student_file_mod_times = [item
                           for repo_file_commit_mod_times in map(get_repo_file_commit_mod_times, student_repos)
@@ -81,14 +88,15 @@ def collect_repo_file_hashes(repo):
     return {tree.path: tree.sha
             for tree in repo.get_git_tree(latest_commit.sha, recursive=True).tree}
 
-master_file_hashes = collect_repo_file_hashes(source_repo)
-
-# Build a table of hashes of all the student files, to test for duplicates against the source
 
 def get_repo_and_file_hashes(repo):
     print('get file hashes for', repo.owner.login)
     return repo, collect_repo_file_hashes(repo)
 
+
+master_file_hashes = collect_repo_file_hashes(source_repo)
+
+# Build a table of hashes of all the student files, to test for duplicates against the source
 
 student_file_hashes = {(repo.owner.login, filename): git_hash
                        for repo, file_hashes in map(get_repo_and_file_hashes, student_repos)
@@ -104,7 +112,9 @@ student_file_records = \
 def filename_sort_key(f):
     return tuple(int(s) if re.match(r'\d+', s) else s for s in re.split(r'(\d+)', f))
 
-df = pd.DataFrame(student_file_records, columns=['student', 'file', 'mod_time']).pivot(index='student', columns='file', values='mod_time')
+
+df = pd.DataFrame(student_file_records, columns=['student', 'file', 'mod_time'])\
+    .pivot(index='student', columns='file', values='mod_time')
 df = df.reindex_axis(sorted(df.columns, key=filename_sort_key), axis=1)
 df.to_csv(OUTPUT_FILE)
 df.head()

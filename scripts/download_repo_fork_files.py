@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# Author: Oliver Steele
-# License: MIT
-
 import argparse
 import base64
 import os
