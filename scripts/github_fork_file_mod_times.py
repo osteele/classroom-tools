@@ -8,12 +8,28 @@ import os
 import re
 import sys
 
-import pandas as pd
-import yaml
-from github import Github
+try:
+    import pandas as pd
+    import yaml
+    from github import Github
+except ImportError as e:
+    sys.stderr.write('%s. Run pip install -r requirements.txt\n' % e)
+    sys.exit(1)
+
+# Constants and Globals
+#
 
 DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
 IGNORE_FILES_RE = re.compile(r'.*\.(bak|csv|exe|jff|jpe?g|JE?PG|png|pyc|svg)|.*~|\.gitignore|FETCH_HEAD')
+
+GITHUB_API_TOKEN = os.environ.get('GITHUB_API_TOKEN', None)
+if not GITHUB_API_TOKEN:
+    print("warning: GITHUB_API_TOKEN is not defined. API calls are rate-limited.", file=sys.stderr)
+
+gh = Github(GITHUB_API_TOKEN)
+
+# Command-line arguments
+#
 
 parser = argparse.ArgumentParser(description="Collect file times.")
 parser.add_argument("--config", default=DEFAULT_CONFIG_FILE, help="YAML configuration file")
@@ -21,30 +37,24 @@ parser.add_argument("repo", help="source repo")
 test_args = ['sd16fall/ReadingJournal']
 args = parser.parse_args(*((test_args,) if 'ipykernel' in sys.modules else ()))
 
-GITHUB_API_TOKEN = os.environ.get('GITHUB_API_TOKEN', None)
-if not GITHUB_API_TOKEN:
-    print("warning: GITHUB_API_TOKEN is not defined. API calls are rate-limited.", file=sys.stderr)
-
-OUTPUT_FILE = "%s file times.csv" % re.sub(r'[./]', ' ', args.repo)
-
-gh = Github(GITHUB_API_TOKEN)
+output_file = "%s file times.csv" % re.sub(r'[./]', ' ', args.repo)
 
 with open(args.config) as f:
     config = yaml.load(f)
 repo_config = config.get(args.repo) or next((rc for rc in config.values() if rc['source_repo'] == args.repo), None)
 
-SOURCE_REPO_NAME = repo_config.get('source_repo', args.repo)
-ORGANIZATION_NAME = SOURCE_REPO_NAME.split('/')[0]
+source_repo_name = args.repo
+organization_name = source_repo_name.split('/')[0]
 # instructors who have forked the repo, but are not in the GitHub team:
-INSTRUCTOR_LOGINS = repo_config.get('instructors', [])
-DROPPED_LOGINS = repo_config.get('dropped', [])  # students who have forked the repo, but are not in the course
+instructor_logins = repo_config.get('instructors', [])
+dropped_logins = repo_config.get('dropped', [])  # students who have forked the repo, but are not in the course
 
-team = next((team for team in gh.get_organization(ORGANIZATION_NAME).get_teams() if team.name == 'Instructors'), None)
+team = next((team for team in gh.get_organization(organization_name).get_teams() if team.name == 'Instructors'), None)
 instructors = list(team.get_members()) if team else []
 
-source_repo = gh.get_repo(SOURCE_REPO_NAME)
+source_repo = gh.get_repo(source_repo_name)
 student_repos = sorted((repo for repo in source_repo.get_forks()
-                        if repo.owner not in instructors and repo.owner.login not in INSTRUCTOR_LOGINS + DROPPED_LOGINS),
+                        if repo.owner not in instructors and repo.owner.login not in instructor_logins + dropped_logins),
                        key=lambda repo: repo.owner.login.lower())
 student_login_names = {repo.owner.login: (repo.owner.name or repo.owner.login) for repo in student_repos}
 
@@ -116,5 +126,5 @@ def filename_sort_key(f):
 df = pd.DataFrame(student_file_records, columns=['student', 'file', 'mod_time'])\
     .pivot(index='student', columns='file', values='mod_time')
 df = df.reindex_axis(sorted(df.columns, key=filename_sort_key), axis=1)
-df.to_csv(OUTPUT_FILE)
+df.to_csv(output_file)
 df.head()

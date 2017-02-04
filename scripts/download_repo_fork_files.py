@@ -6,7 +6,11 @@ import os
 import re
 import sys
 
-from github import Github
+try:
+    from github import Github
+except ImportError as e:
+    sys.stderr.write('%s. Run pip install -r requirements.txt\n' % e)
+    sys.exit(1)
 
 # The `sys.path.append` is a hack, to work around the fact that this code should really be a package but isn't yet.
 # `if True` protects sort-imports from promoting the second line.

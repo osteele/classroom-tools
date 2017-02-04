@@ -30,7 +30,7 @@ try:
     from bs4 import BeautifulSoup
     from jinja2 import Environment
 except ImportError as e:
-    sys.stderr.write('%s. Try running pip install %s' % (e, e.name))
+    sys.stderr.write('%s. Run pip install -r requirements.txt\n' % e)
     sys.exit(1)
 
 # Test data for Jupyter / Hydrogen development

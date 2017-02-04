@@ -21,11 +21,16 @@ from copy import deepcopy
 from glob import glob
 from json import JSONDecodeError
 
-import Levenshtein
-import nbconvert
-import nbformat
-import pandas as pd
-from numpy import argmin
+try:
+    import Levenshtein
+    import nbconvert
+    import nbformat
+    import pandas as pd
+    from numpy import argmin
+except ImportError as e:
+    sys.stderr.write('%s. Run pip install -r requirements.txt\n' % e)
+    sys.exit(1)
+
 
 # Constants
 #
