@@ -181,10 +181,10 @@ classroom-tools/
 ├── build – not committed to the repo
 ├── config – not committed to the repo
 ├── downloads – not committed to the repo
-├── classroom_tools
-│     Utility functions that aren't scripts; potentially shared by multiple scripts.
 ├── scripts
 │     Script functions, invoked from the command line.
+├── src
+│     Utility functions that aren't scripts; potentially shared by multiple scripts.
 └── templates
       HTML jinja2 template files
 ```
