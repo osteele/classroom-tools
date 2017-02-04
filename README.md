@@ -15,7 +15,9 @@ The scripts in this file are still under (occasional) active development, and ar
 
 ## Setup
 
-1\. Install Python 3.5 or greater.
+### 1. Install Python
+
+Install Python 3.5 or greater. (Lesser versions of Python 3 will likely work but are untested. Python 2 is right out.)
 
 To check whether Python 3.5 is installed, execute `python3 --version`, and verify the output version:
 
@@ -26,11 +28,28 @@ Python 3.5.2 :: Anaconda custom (x86_64)
 
 [An easy way to install Python is to follow the [install instructions for Anaconda](https://docs.continuum.io/anaconda/install).]
 
-2\. Install required Python packages:
+### 2. Install required Python packages
 
     $ pip3 install -r requirements.txt
 
 Depending on how Python is installed, you may need to prefix `pip3 install …` by `sudo`.
+
+### 3. [Optional] Retrieve a GitHub personal API token
+
+Some of these scripts use GitHub's API.
+
+GitHub limits the rate at which a particular machine can make API calls.
+
+If you repeatedly run these scripts on a repo with many forks, you may run into these limits.
+(You may also run into them if you work on developing the scripts.)
+
+To increase the limit, [create a personal GitHub API token](https://github.com/blog/1509-personal-api-tokens)
+and set the `GITHUB_API_TOKEN` environment variable to this value.
+
+For example, my macOS and Ubuntu shells are set to **zsh**, so my startup files include `~/.zshenv`.
+My `~/.zshenv` includes this line:
+
+    export GITHUB_API_TOKEN=axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0
 
 
 ## Usage

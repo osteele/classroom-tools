@@ -18,10 +18,12 @@ if True:
 # Constants
 #
 
-DEFAULT_CONFIG_FILE = 'config/source_repos.yaml'
 ORIGIN_DIRNAME = 'origin'
-GH_TOKEN = os.environ['GITHUB_API_TOKEN']
 TEAM_NAMES = ['instructors', 'faculty', 'ninjas']
+
+GITHUB_API_TOKEN = os.environ.get('GITHUB_API_TOKEN', None)
+if not GITHUB_API_TOKEN:
+    print("warning: GITHUB_API_TOKEN is not defined. API calls are rate-limited.", file=sys.stderr)
 
 
 # Command-line arguments
@@ -34,7 +36,6 @@ if 'ipykernel' in sys.modules:
 
 parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
 parser.add_argument("--classroom", action='store_true', help="Repo is a GitHub classroom")
-parser.add_argument("--config", default=DEFAULT_CONFIG_FILE, help="YAML configuration file")
 parser.add_argument('-n', "--dry-run", action='store_true', default=False)
 parser.add_argument("--flatten", action='store_true', default=False, help="Flatten single-file repos")
 parser.add_argument("--ignore-images", action='store_true', default=False)
