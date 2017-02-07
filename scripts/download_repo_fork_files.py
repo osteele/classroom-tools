@@ -13,10 +13,8 @@ except ImportError as e:
     sys.exit(1)
 
 # The `sys.path.append` is a hack, to work around the fact that this code should really be a package but isn't yet.
-# `if True` protects sort-imports from promoting the second line.
 sys.path.append(os.path.join(os.path.dirname(__file__), '../src'))
-if True:
-    from utils import get_file_git_hash
+from utils import get_file_git_hash  # isort:skip
 
 
 # Constants
