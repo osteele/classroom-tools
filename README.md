@@ -1,9 +1,9 @@
 # Olin Computing Assignment Tools
 
 This repository contains tools for collecting and processing projects and assignments,
-mostly related to GitHub and Jupyter notebooks.
+mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), [Jupyter notebooks](http://jupyter.org).
 
-It also contains a smattering of other class-related tools.
+It also contains a smattering of other class-related tools, specific to the Olin College IT infrastructure.
 
 Report issues [here](https://github.com/olin-computing/classroom-tools/issues).
 
@@ -17,7 +17,7 @@ The scripts in this file are still under (occasional) active development, and ar
 
 ### 1. Install Python
 
-Install Python 3.5 or greater. (Lesser versions of Python 3 will likely work but are untested. Python 2 is right out.)
+Install Python 3.5 or greater. [Lesser versions of Python 3 will likely work but are untested. Python 2 is right out.]
 
 To check whether Python 3.5 is installed, execute `python3 --version`, and verify the output version:
 
@@ -26,13 +26,15 @@ $ python3 --version
 Python 3.5.2 :: Anaconda custom (x86_64)
 ```
 
-[An easy way to install Python is to follow the [install instructions for Anaconda](https://docs.continuum.io/anaconda/install).]
+An easy way to install Python is to follow the [install instructions for Anaconda](https://docs.continuum.io/anaconda/install).
+
 
 ### 2. Install required Python packages
 
     $ pip3 install -r requirements.txt
 
 Depending on how Python is installed, you may need to prefix `pip3 install …` by `sudo`.
+
 
 ### 3. [Optional] Retrieve a GitHub personal API token
 
@@ -42,6 +44,9 @@ GitHub limits the rate at which a particular machine can make API calls.
 
 If you repeatedly run these scripts on a repo with many forks, you may run into these limits.
 (You may also run into them if you work on developing the scripts.)
+
+You will also need a personal API token in order to access any private repositories, which is common with
+[GitHub Classroom](https://classroom.github.com).
 
 To increase the limit, [create a personal GitHub API token](https://github.com/blog/1509-personal-api-tokens)
 and set the `GITHUB_API_TOKEN` environment variable to this value.
@@ -73,20 +78,20 @@ These subdirectories are not committed to the repository.
       Scripts look here for manually downloaded files. Scripts that download files also place them here.
 ```
 
-`REPO_NAME` is a GitHub repository full name, in the format *$GitHub_organization*/*$repo_short_name*.
+`REPO_NAME` is a GitHub repository full name, in the format *org_name*/*short_name*. For example, this repo is `olin-computing/classroom-tools`.
 
-### The Scripts
 
-#### `./scripts/create_course_enrollment_flashcards.py HTML_FILE`
+### GitHub Tools
 
-Turns a Course Enrollment page downloaded from the Portal into:
+#### Download Forks
 
-1. A file and directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/)
-2. An HTML "contact sheet" page, that displays all the student names and faces in a grid.
+`./scripts/download_repo_fork_files.py REPO_NAME`
 
-#### `./scripts/download_repo_fork_files.py REPO_NAME`
+`./scripts/download_repo_fork_files.py REPO_NAME --classroom`
 
 Download all the forks of a repo. Suitable for collecting assignments.
+
+With the `--classroom` option, it instead downloads all repos in the same organization, that have the same name as the given repo but suffixed by `-`*login*.
 
 This script downloads files into the directory structure:
 
@@ -101,32 +106,17 @@ Only files that are different from the version in the origin repository are down
 
 This script can also download all the individual copies of a [GitHub Classroom](https://classroom.github.com) assignment, even though these are not forks. Use the `--classroom` option to invoke it in this mode.
 
-#### `./scripts/github_fork_file_mod_times.py REPO_NAME`
+
+#### Collect Fork File Modification Times
+
+`./scripts/github_fork_file_mod_times.py REPO_NAME`
 
 Create a spreadsheet that contains the student names and file modification dates, for each file in a forked repository.
 
-#### `./scripts/summarize_scope_survey.py CSV_FILE`
 
-Give a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
+#### Collate Downloaded Files
 
-#### `./scripts/combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
-
-Combine notebooks into a single notebook.
-
-This script expects a directory structure created by the `download_repo_fork_files` script. It creates:
-
-```
-./build/${github_organization}-${github_repo}
-├── processed_notebooks/
-│   └── notebook_name.ipynb
-└── summaries/
-    ├── poll1.csv
-    ├── poll2.csv
-    ├── …
-    └── poll${n}.csv
-```
-
-#### `./scripts/collect_notebooks.py` (under development)
+`./scripts/collate_downloaded_files.py` (under development)
 
 Collect downloaded notebooks into a common directory.
 
@@ -144,8 +134,52 @@ This script expects a directory structure created by the `download_repo_fork_fil
 
 The name of the repository is currently hardcoded into the script.
 
+
+### Jupyter Tools
+
+#### Collate Jupyter Notebooks
+
+`./scripts/combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
+
+Combine notebooks into a single notebook.
+
+This script expects a directory structure created by the `download_repo_fork_files` script. It creates:
+
+```
+./build/${github_organization}-${github_repo}
+├── processed_notebooks/
+│   └── notebook_name.ipynb
+└── summaries/
+    ├── poll1.csv
+    ├── poll2.csv
+    ├── …
+    └── poll${n}.csv
+```
+
 This script is derived from,
 and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
+
+A web application with similar functionality is at [osteele/assignment-dashboard](https://github.com/osteele/assignment-dashboard).
+That application caches the state of GitHub into a local **sqlite3** store, and provides a web interface for inspect completion status by student or by question and for browsing the original and collated notebooks.
+
+
+### Other Scripts
+
+#### Create Flashcards and Contact Sheet
+
+`./scripts/create_course_enrollment_flashcards.py HTML_FILE`
+
+Turns a Course Enrollment page downloaded from the Portal into:
+
+1. A file and directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/)
+2. An HTML "contact sheet" page, that displays all the student names and faces in a grid.
+
+
+#### Summarize Scope Survey
+
+`./scripts/summarize_scope_survey.py CSV_FILE`
+
+Given a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
 
 
 ## Contributing
@@ -153,7 +187,7 @@ and documented at, [osteele/assignment-tools](https://github.com/osteele/assignm
 Some things to work on are listed [here](https://github.com/olin-computing/classroom-tools/issues).
 
 
-## Style
+### Style
 
 With exceptions listed in `setup.cfg`, code should conform to [PEP8](https://www.python.org/dev/peps/pep-0008/), [PEP257](https://www.python.org/dev/peps/pep-0257/), and the [Google Python Style Guide](http://google.github.io/styleguide/pyguide.html).
 
@@ -188,3 +222,14 @@ classroom-tools/
 └── templates
       HTML jinja2 template files
 ```
+
+### Contributions
+
+`combine-notebooks.py` is derived from
+Paul Ruvolo's [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
+An intermediate version is at [osteele/assignment-tools](https://github.com/osteele/assignment-tools).
+A successor is in the web application at [osteele/assignment-dashboard](https://github.com/osteele/assignment-dashboard); this script may eventually be changed to run on top, or otherwise share code with, that one.
+
+### License
+
+MIT
