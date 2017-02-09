@@ -87,11 +87,17 @@ These subdirectories are not committed to the repository.
 
 `./scripts/download_repo_fork_files.py REPO_NAME`
 
-`./scripts/download_repo_fork_files.py REPO_NAME --classroom`
+`./scripts/download_repo_fork_files.py --classroom REPO_NAME`
 
 Download all the forks of a repo. Suitable for collecting assignments.
 
-With the `--classroom` option, it instead downloads all repos in the same organization, that have the same name as the given repo but suffixed by `-`*login*.
+With the `--classroom` option, the script downloads repos `org_name/repo_name-$login` in the same account. (This is the format of repos created by GitHub Classroom.)
+
+Only files that are different from the version in the origin repository are downloaded.
+
+This script also omits repos that belong to members of *org_name*.
+
+(Both of these are suitable for my purposes, but could easily be turned into command-line optons.)
 
 This script downloads files into the directory structure:
 
@@ -101,10 +107,6 @@ This script downloads files into the directory structure:
     └── ${student_github_id}/
         └── files…
 ```
-
-Only files that are different from the version in the origin repository are downloaded.
-
-This script can also download all the individual copies of a [GitHub Classroom](https://classroom.github.com) assignment, even though these are not forks. Use the `--classroom` option to invoke it in this mode.
 
 
 #### Collect Fork File Modification Times
