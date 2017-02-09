@@ -15,7 +15,14 @@ The scripts in this file are still under (occasional) active development, and ar
 
 ## Setup
 
-### 1. Install Python
+### 1. Download this repository
+
+``` bash
+$ git clone https://github.com/olin-computing/classroom-tools.git
+```
+
+
+### 2. Install Python
 
 Install Python 3.5 or greater. [Lesser versions of Python 3 will likely work but are untested. Python 2 is right out.]
 
@@ -29,14 +36,14 @@ Python 3.5.2 :: Anaconda custom (x86_64)
 An easy way to install Python is to follow the [install instructions for Anaconda](https://docs.continuum.io/anaconda/install).
 
 
-### 2. Install required Python packages
+### 3. Install required Python packages
 
     $ pip3 install -r requirements.txt
 
 Depending on how Python is installed, you may need to prefix `pip3 install …` by `sudo`.
 
 
-### 3. [Optional] Retrieve a GitHub personal API token
+### 4. [Optional] Retrieve a GitHub personal API token
 
 Some of these scripts use GitHub's API.
 
@@ -227,10 +234,15 @@ classroom-tools/
 
 ### Contributions
 
-`combine-notebooks.py` is derived from
-Paul Ruvolo's [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
+`combine-notebooks.py` is derived from a script by
+Paul Ruvolo at Olin [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
 An intermediate version is at [osteele/assignment-tools](https://github.com/osteele/assignment-tools).
 A successor is in the web application at [osteele/assignment-dashboard](https://github.com/osteele/assignment-dashboard); this script may eventually be changed to run on top, or otherwise share code with, that one.
+
+`create_course_enrollment_flashcards.py` is based on an idea by Ben Hill at Olin.
+His code was better but I added more functionality (nicknames, HTML generation) before I saw his,
+and haven't yet backed out my complexity in favor of his simplicity.
+
 
 ### License
 
