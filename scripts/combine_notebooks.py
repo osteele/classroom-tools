@@ -401,6 +401,6 @@ nbe = NotebookExtractor(origin_notebook, student_notebooks)
 nbe.extract()
 
 # nbe.report_missing_answers()
-nbe.write_notebook(include_html=True)
+nbe.write_notebook(include_html=False)
 nbe.write_poll_results()
 # nbe.write_answer_counts()

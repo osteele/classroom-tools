@@ -98,7 +98,7 @@ def repo_owner_login(repo):
     return repo.name[len(origin.name + '-'):] if args.classroom else repo.owner.login
 
 
-gh = Github(GH_TOKEN)
+gh = Github(GITHUB_API_TOKEN)
 origin = gh.get_repo(args.repo)
 assert origin.owner, "not a GitHub repo: %s" % args.repo
 teams = [team for team in gh.get_organization(origin.organization.login).get_teams() if team.name.lower() in TEAM_NAMES]

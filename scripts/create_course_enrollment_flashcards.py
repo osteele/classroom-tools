@@ -104,7 +104,6 @@ def dataframe_from_html(table):
     data = [[inner_html(td) for td in row] for row in data_rows]
     return pd.DataFrame.from_records(data, columns=col_names)
 
-
 # Create a dictionary mapping registrar names to student names
 #
 # In lieu of documentation, run this with the Atom Hydrogen plug-in or the Visual Studio Code
