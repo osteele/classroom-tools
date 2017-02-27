@@ -168,7 +168,7 @@ This script expects a directory structure created by the `download_repo_fork_fil
 This script is derived from,
 and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
 
-A web application with similar functionality is at [osteele/assignment-dashboard](https://github.com/osteele/assignment-dashboard).
+A web application with similar functionality is at [olin-computing/assignment-dashboard](https://github.com/olin-computing/assignment-dashboard).
 That application caches the state of GitHub into a local **sqlite3** store, and provides a web interface for inspect completion status by student or by question and for browsing the original and collated notebooks.
 
 
@@ -232,12 +232,12 @@ classroom-tools/
       HTML jinja2 template files
 ```
 
-### Contributions
+### Acknowledgements
 
 `combine-notebooks.py` is derived from a script by
 Paul Ruvolo at Olin [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
 An intermediate version is at [osteele/assignment-tools](https://github.com/osteele/assignment-tools).
-A successor is in the web application at [osteele/assignment-dashboard](https://github.com/osteele/assignment-dashboard); this script may eventually be changed to run on top, or otherwise share code with, that one.
+The [nbcollate package](https://github.com/olin-computing/nbcollate) is a successory. The command-line tool in this repository may eventually be changed to use that package.
 
 `create_course_enrollment_flashcards.py` is based on an idea by Ben Hill at Olin.
 His code was better but I added more functionality (nicknames, HTML generation) before I saw his,
