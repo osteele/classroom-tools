@@ -3,9 +3,10 @@ pandas>=0.18.0
 PyGithub>=1.29
 PyYAML>=3.11
 
-# for create_course_enrollment_flashcards:
+# create_course_enrollment_flashcards:
 beautifulsoup4>=4.4.1
+xlsxwriter>=0.9.8
 
-# for combine_notebooks:
+# combine_notebooks:
 nbconvert>=5.1.1
 python-Levenshtein>=0.12.0
