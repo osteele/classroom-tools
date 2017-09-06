@@ -7,11 +7,9 @@ It also contains a smattering of other class-related tools, specific to the Olin
 
 Report issues [here](https://github.com/olin-computing/classroom-tools/issues).
 
-
 ## Status
 
 The scripts in this file are still under (occasional) active development, and are under-tested and under-documented.
-
 
 ## Setup
 
@@ -20,7 +18,6 @@ The scripts in this file are still under (occasional) active development, and ar
 ``` bash
 $ git clone https://github.com/olin-computing/classroom-tools.git
 ```
-
 
 ### 2. Install Python
 
@@ -35,13 +32,11 @@ Python 3.5.2 :: Anaconda custom (x86_64)
 
 An easy way to install Python is to follow the [install instructions for Anaconda](https://docs.continuum.io/anaconda/install).
 
-
 ### 3. Install required Python packages
 
     $ pip3 install -r requirements.txt
 
 Depending on how Python is installed, you may need to prefix `pip3 install …` by `sudo`.
-
 
 ### 4. [Optional] Retrieve a GitHub personal API token
 
@@ -63,7 +58,6 @@ My `~/.zshenv` includes this line (where `xxxxxxxx` is my personal GitHub API to
 
     export GITHUB_API_TOKEN=xxxxxxxx
 
-
 ## Usage
 
 ### General Usage
@@ -75,18 +69,15 @@ Invoke a script with `--help` to see options that aren't listed below.
 The scripts assume the following directory organization.
 These subdirectories are not committed to the repository.
 
-```
-./
-├── build
-│     Files that are created by script (as opposed to downloaded) are placed here.
-├── config – optional configuration files
-│     student-nicknames.txt
-└── downloads
-      Scripts look here for manually downloaded files. Scripts that download files also place them here.
-```
+    ./
+    ├── build
+    │     Files that are created by script (as opposed to downloaded) are placed here.
+    ├── config – optional configuration files
+    │     student-nicknames.txt
+    └── downloads
+          Scripts look here for manually downloaded files. Scripts that download files also place them here.
 
 `REPO_NAME` is a GitHub repository full name, in the format *org_name*/*short_name*. For example, this repo is `olin-computing/classroom-tools`.
-
 
 ### GitHub Tools
 
@@ -108,20 +99,16 @@ This script also omits repos that belong to members of *org_name*.
 
 This script downloads files into the directory structure:
 
-```
-./downloads/
-└── ${github_organization}-${github_repo}/
-    └── ${student_github_id}/
-        └── files…
-```
-
+    ./downloads/
+    └── ${github_organization}-${github_repo}/
+        └── ${student_github_id}/
+            └── files…
 
 #### Collect Fork File Modification Times
 
 `./scripts/github-fork-file-modtimes REPO_NAME`
 
 Create a spreadsheet that contains the student names and file modification dates, for each file in a forked repository.
-
 
 #### Collate Downloaded Files
 
@@ -131,18 +118,15 @@ Collect downloaded notebooks into a common directory.
 
 This script expects a directory structure created by the `download-repo-fork-files` script. It creates:
 
-```
-./downloads/
-└── ${github_organization}-${github_repo}-combined/
-    └── ${filename_without_extension}/
-        ├── ${student1_github_login}.${filename_extension}
-        ├── ${student2_github_login}.${filename_extension}
-        ├── …
-        └── ${student${n}_github_login}.${filename_extension}
-```
+    ./downloads/
+    └── ${github_organization}-${github_repo}-combined/
+        └── ${filename_without_extension}/
+            ├── ${student1_github_login}.${filename_extension}
+            ├── ${student2_github_login}.${filename_extension}
+            ├── …
+            └── ${student${n}_github_login}.${filename_extension}
 
 The name of the repository is currently hardcoded into the script.
-
 
 ### Jupyter Tools
 
@@ -154,23 +138,20 @@ Combine notebooks into a single notebook.
 
 This script expects a directory structure created by the `download-repo-fork-files` script. It creates:
 
-```
-./build/${github_organization}-${github_repo}
-├── processed_notebooks/
-│   └── notebook_name.ipynb
-└── summaries/
-    ├── poll1.csv
-    ├── poll2.csv
-    ├── …
-    └── poll${n}.csv
-```
+    ./build/${github_organization}-${github_repo}
+    ├── processed_notebooks/
+    │   └── notebook_name.ipynb
+    └── summaries/
+        ├── poll1.csv
+        ├── poll2.csv
+        ├── …
+        └── poll${n}.csv
 
 This script is derived from,
 and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
 
 A web application with similar functionality is at [olin-computing/assignment-dashboard](https://github.com/olin-computing/assignment-dashboard).
 That application caches the state of GitHub into a local **sqlite3** store, and provides a web interface for inspect completion status by student or by question and for browsing the original and collated notebooks.
-
 
 ### Other Scripts
 
@@ -183,18 +164,15 @@ Turns a Course Enrollment page downloaded from the Portal into:
 1. A file and directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/)
 2. An HTML "contact sheet" page, that displays all the student names and faces in a grid.
 
-
 #### Summarize Scope Survey
 
 `./scripts/summarize-scope-survey CSV_FILE`
 
 Given a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
 
-
 ## Contributing
 
 Some things to work on are listed [here](https://github.com/olin-computing/classroom-tools/issues).
-
 
 ### Style
 
@@ -216,21 +194,18 @@ For example, it would be nice to be able to re-organize the scripts as modules,
 and invoke them as subcommands from a single CLI entry point, or make them available to a web or desktop
 application. The current style may not be compatible with that.
 
-
 ### Directory Organization
 
-```
-classroom-tools/
-├── build – not committed to the repo
-├── config – not committed to the repo
-├── downloads – not committed to the repo
-├── scripts
-│     Script functions, invoked from the command line.
-├── src
-│     Utility functions that aren't scripts; potentially shared by multiple scripts.
-└── templates
-      HTML jinja2 template files
-```
+    classroom-tools/
+    ├── build – not committed to the repo
+    ├── config – not committed to the repo
+    ├── downloads – not committed to the repo
+    ├── scripts
+    │     Script functions, invoked from the command line.
+    ├── src
+    │     Utility functions that aren't scripts; potentially shared by multiple scripts.
+    └── templates
+          HTML jinja2 template files
 
 ### Acknowledgements
 
@@ -242,7 +217,6 @@ The [nbcollate package](https://github.com/olin-computing/nbcollate) is a succes
 `create-enrollment-flashcards` is based on an idea by Ben Hill at Olin.
 His code was better but I added more functionality (nicknames, HTML generation) before I saw his,
 and haven't yet backed out my complexity in favor of his simplicity.
-
 
 ### License
 
