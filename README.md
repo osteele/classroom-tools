@@ -159,10 +159,16 @@ That application caches the state of GitHub into a local **sqlite3** store, and 
 
 `./scripts/create-enrollment-flashcards HTML_FILE`
 
-Turns a Course Enrollment page downloaded from the Portal into:
+Generate a file and media directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/),
+from a Course Enrollment page downloaded from the Portal.
 
-1. A file and directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/)
-2. An HTML "contact sheet" page, that displays all the student names and faces in a grid.
+#### Create Student Contact Sheet
+
+`./scripts/create-enrollment-contact-sheet HTML_FILE`
+
+Generate HTML "contact sheet" page, that displays all the student names and faces in a grid,
+from a Course Enrollment page downloaded from the Portal.
+
 
 #### Summarize Scope Survey
 
