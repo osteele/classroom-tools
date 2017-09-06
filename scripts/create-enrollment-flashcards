@@ -59,8 +59,8 @@ HTML_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), '../templates/conta
 # Command-line arguments
 parser = argparse.ArgumentParser(description="Create a Flashcard file and directory for students enrolled in a course.")
 parser.add_argument("-d", "--output-dir", help="Output directory. Defaults to HTML_FILE's directory.")
-parser.add_argument("-o", "--output", help="Output file. Should end in .csv or .xlsl.")
-parser.add_argument("-f", "--format", default="xlsl", choices=["csv", "html", "xlsl"])
+parser.add_argument("-o", "--output", help="Output file. Should end in .csv or .xlsx.")
+parser.add_argument("-f", "--format", default="xlsx", choices=["csv", "html", "xlsx"])
 parser.add_argument("--course-name")
 parser.add_argument("--delete", action='store_true')
 parser.add_argument("--service", choices=["dropbox"], help="Place in Dropbox app directory. Use instead of --output-dir.")
