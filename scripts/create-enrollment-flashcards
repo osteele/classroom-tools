@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
 
 """
 Create a `*.xlsx` file and `Media` folder that contain the names and photos of students enrolled in a course,
