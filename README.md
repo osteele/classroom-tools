@@ -1,4 +1,4 @@
-# Olin Computing Assignment Tools
+f.# Olin Computing Assignment Tools
 
 This repository contains tools for collecting and processing projects and assignments,
 mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), [Jupyter notebooks](http://jupyter.org).
@@ -92,9 +92,9 @@ These subdirectories are not committed to the repository.
 
 #### Download Forks
 
-`./scripts/download_repo_fork_files.py REPO_NAME`
+`./scripts/download-repo-fork-files REPO_NAME`
 
-`./scripts/download_repo_fork_files.py --classroom REPO_NAME`
+`./scripts/download-repo-fork-files --classroom REPO_NAME`
 
 Download all the forks of a repo. Suitable for collecting assignments.
 
@@ -118,18 +118,18 @@ This script downloads files into the directory structure:
 
 #### Collect Fork File Modification Times
 
-`./scripts/github_fork_file_mod_times.py REPO_NAME`
+`./scripts/github-fork-file-modtimes REPO_NAME`
 
 Create a spreadsheet that contains the student names and file modification dates, for each file in a forked repository.
 
 
 #### Collate Downloaded Files
 
-`./scripts/collate_downloaded_files.py` (under development)
+`./scripts/collate-downloaded-files` (under development)
 
 Collect downloaded notebooks into a common directory.
 
-This script expects a directory structure created by the `download_repo_fork_files` script. It creates:
+This script expects a directory structure created by the `download-repo-fork-files` script. It creates:
 
 ```
 ./downloads/
@@ -148,11 +148,11 @@ The name of the repository is currently hardcoded into the script.
 
 #### Collate Jupyter Notebooks
 
-`./scripts/combine_notebooks.py REPO_NAME NOTEBOOK_FILE_NAME`
+`./scripts/combine-notebooks REPO_NAME NOTEBOOK_FILE_NAME`
 
 Combine notebooks into a single notebook.
 
-This script expects a directory structure created by the `download_repo_fork_files` script. It creates:
+This script expects a directory structure created by the `download-repo-fork-files` script. It creates:
 
 ```
 ./build/${github_organization}-${github_repo}
@@ -176,7 +176,7 @@ That application caches the state of GitHub into a local **sqlite3** store, and 
 
 #### Create Flashcards and Contact Sheet
 
-`./scripts/create_course_enrollment_flashcards.py HTML_FILE`
+`./scripts/create-enrollment-flashcards HTML_FILE`
 
 Turns a Course Enrollment page downloaded from the Portal into:
 
@@ -186,7 +186,7 @@ Turns a Course Enrollment page downloaded from the Portal into:
 
 #### Summarize Scope Survey
 
-`./scripts/summarize_scope_survey.py CSV_FILE`
+`./scripts/summarize-scope-survey CSV_FILE`
 
 Given a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
 
@@ -239,7 +239,7 @@ Paul Ruvolo at Olin [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/S
 An intermediate version is at [osteele/assignment-tools](https://github.com/osteele/assignment-tools).
 The [nbcollate package](https://github.com/olin-computing/nbcollate) is a successory. The command-line tool in this repository may eventually be changed to use that package.
 
-`create_course_enrollment_flashcards.py` is based on an idea by Ben Hill at Olin.
+`create-enrollment-flashcards` is based on an idea by Ben Hill at Olin.
 His code was better but I added more functionality (nicknames, HTML generation) before I saw his,
 and haven't yet backed out my complexity in favor of his simplicity.
 
