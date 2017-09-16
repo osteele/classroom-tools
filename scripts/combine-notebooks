@@ -31,7 +31,6 @@ except ImportError as e:
     sys.stderr.write('%s. Run pip install -r requirements.txt\n' % e)
     sys.exit(1)
 
-
 # Constants
 #
 
@@ -40,17 +39,23 @@ POLL_RE = r'#+ .*(poll|Notes for the Instructors|Reading Journal Feedback)'
 ORIGIN_DIRNAME = 'origin'
 CLEAR_OUTPUTS = True
 
-
 # Command-line arguments
 #
 
 # Test data for Jupyter / Hydrogen development
 if 'ipykernel' in sys.modules:
-    sys.argv = ['script', 'sd17spring/ReadingJournal', 'day3_reading_journal.ipynb']
+    sys.argv = [
+        'script', 'sd17spring/ReadingJournal', 'day3_reading_journal.ipynb'
+    ]
 
-parser = argparse.ArgumentParser(description="Download all the forks of a GitHub repository.")
-parser.add_argument("repo", metavar='REPO_NAME', help="GitHub source repo, in format username/repo_name")
-parser.add_argument("notebook", metavar='NOTEBOOK', help="Jupyter notebook filename")
+parser = argparse.ArgumentParser(
+    description="Download all the forks of a GitHub repository.")
+parser.add_argument(
+    "repo",
+    metavar='REPO_NAME',
+    help="GitHub source repo, in format username/repo_name")
+parser.add_argument(
+    "notebook", metavar='NOTEBOOK', help="Jupyter notebook filename")
 args = parser.parse_args(sys.argv[1:])
 
 repo_name = args.repo
@@ -65,13 +70,19 @@ repos_download_dir = os.path.join('./downloads', repo_name.replace('/', '-'))
 origin_notebook = os.path.join(repos_download_dir, ORIGIN_DIRNAME, nb_name)
 assert os.path.exists(origin_notebook)
 
-student_file = os.path.join('./downloads', repo_name.split('/')[0] + '-students.csv')
-student_df = (pd.read_csv(student_file) if os.path.exists(student_file)
-              else pd.DataFrame([], columns=['Student', 'Nickname', 'GitHub']))
-student_df = pd.concat([student_df,
-                        student_df['Full Name'].str.extract('(?P<first>\S+).*?(?P<last>\S+)$', expand=True)
-                        ], axis=1)
-student_df['Name'] = student_df['Nickname'].fillna(student_df['first']).str.cat(student_df['last'], ' ')
+student_file = os.path.join('./downloads',
+                            repo_name.split('/')[0] + '-students.csv')
+student_df = (pd.read_csv(student_file)
+              if os.path.exists(student_file) else pd.DataFrame(
+                  [], columns=['Student', 'Nickname', 'GitHub']))
+student_df = pd.concat(
+    [
+        student_df, student_df['Full Name'].str.extract(
+            '(?P<first>\S+).*?(?P<last>\S+)$', expand=True)
+    ],
+    axis=1)
+student_df['Name'] = student_df['Nickname'].fillna(
+    student_df['first']).str.cat(student_df['last'], ' ')
 github_id_username_dict = dict(zip(student_df['GitHub'], student_df['Name']))
 
 # Functions
@@ -113,6 +124,7 @@ def safe_read_notebook(path, owner=None, clear_outputs=False):
 # The extractor
 #
 
+
 class NotebookExtractor(object):
     """The top-level class for extracting answers from a notebook.
 
@@ -121,9 +133,13 @@ class NotebookExtractor(object):
 
     MATCH_THRESH = 10  # maximum edit distance to consider something a match
 
-    def __init__(self, notebook_template_file, notebooks, include_usernames=False):
+    def __init__(self,
+                 notebook_template_file,
+                 notebooks,
+                 include_usernames=False):
         """Initialize with the specified notebook URLs and list of question prompts."""
-        self.question_prompts = self.build_question_prompts(notebook_template_file)
+        self.question_prompts = self.build_question_prompts(
+            notebook_template_file)
         self.notebooks = notebooks
         self.usernames = [nb['metadata']['owner'] for nb in notebooks]
         self.include_usernames = include_usernames
@@ -147,15 +163,18 @@ class NotebookExtractor(object):
                 cell_source = ''.join(cell['source'])
                 if prev_prompt is not None:
                     prompts[-1].stop_md = cell_source
-                is_poll = metadata.get('is_poll', 'Reading Journal feedback' in cell_source.split('\n')[0])
-                prompts.append(QuestionPrompt(question_heading='',
-                                              name=metadata.get('problem', None),
-                                              index=len(prompts),
-                                              start_md=cell_source,
-                                              stop_md='next_cell',
-                                              is_optional=metadata.get('is_optional', None),
-                                              is_poll=is_poll
-                                              ))
+                is_poll = metadata.get(
+                    'is_poll',
+                    'Reading Journal feedback' in cell_source.split('\n')[0])
+                prompts.append(
+                    QuestionPrompt(
+                        question_heading='',
+                        name=metadata.get('problem', None),
+                        index=len(prompts),
+                        start_md=cell_source,
+                        stop_md='next_cell',
+                        is_optional=metadata.get('is_optional', None),
+                        is_poll=is_poll))
                 if metadata.get('allow_multi_cell', False):
                     prev_prompt = prompts[-1]
                     # if it's the last cell, take everything else
@@ -181,7 +200,8 @@ class NotebookExtractor(object):
                                              suppress_non_answer)
                 if not response_cells:
                     status = 'missed'
-                elif not response_cells[-1]['source'] or not NotebookUtils.cell_list_text(response_cells):
+                elif not response_cells[-1]['source'] or not NotebookUtils.cell_list_text(
+                        response_cells):
                     status = 'blank'
                 else:
                     status = 'answered'
@@ -189,28 +209,42 @@ class NotebookExtractor(object):
                         # If it's the first notebook with this answer, extract the questions from it.
                         # This is kind of a bass-ackwards way to do this; it's incremental from the previous
                         # strategy.
-                        prompt.cells = [cell for cell in response_cells
-                                        if cell['metadata'].get('is_question', False)]
-                        response_cells = [cell for cell in response_cells if cell not in prompt.cells]
+                        prompt.cells = [
+                            cell for cell in response_cells
+                            if cell['metadata'].get('is_question', False)
+                        ]
+                        response_cells = [
+                            cell for cell in response_cells
+                            if cell not in prompt.cells
+                        ]
                     prompt.answers[gh_username] = response_cells
                 prompt.answer_status[gh_username] = status
 
         sort_responses = not self.include_usernames
         sort_responses = False  # FIXME doesn't work because questions are collected into first response
         if sort_responses:
+
             def cell_slines_length(response_cells):
-                return len('\n'.join(''.join(cell['source']) for cell in response_cells).strip())
+                return len('\n'.join(''.join(cell['source'])
+                                     for cell in response_cells).strip())
+
             for prompt in self.question_prompts:
-                prompt.answers = OrderedDict(sorted(prompt.answers.items(), key=lambda t: cell_slines_length(t[1])))
+                prompt.answers = OrderedDict(
+                    sorted(
+                        prompt.answers.items(),
+                        key=lambda t: cell_slines_length(t[1])))
 
     def report_missing_answers(self):
         # Report missing answers
-        mandatory_questions = [prompt for prompt in self.question_prompts
-                               if not prompt.is_poll and not prompt.is_optional]
+        mandatory_questions = [
+            prompt for prompt in self.question_prompts
+            if not prompt.is_poll and not prompt.is_optional
+        ]
         for prompt in mandatory_questions:
-            unanswered = sorted((username, status)
-                                for username, status in prompt.answer_status.items()
-                                if status != 'answered')
+            unanswered = sorted(
+                (username, status)
+                for username, status in prompt.answer_status.items()
+                if status != 'answered')
             for username, status in unanswered:
                 print("{status} {prompt_name}: {username}".format(
                     status=status.capitalize(),
@@ -232,7 +266,8 @@ class NotebookExtractor(object):
             for gh_username, response_cells in answers.items():
                 if self.include_usernames:
                     filtered_cells.append(
-                        NotebookUtils.markdown_heading_cell(self.gh_username_to_fullname(gh_username), 4))
+                        NotebookUtils.markdown_heading_cell(
+                            self.gh_username_to_fullname(gh_username), 4))
                 filtered_cells.extend(response_cells)
 
         answer_book = deepcopy(self.template)
@@ -254,16 +289,21 @@ class NotebookExtractor(object):
                 fp.write(html_content)
 
     def write_answer_counts(self):
-        output_file = os.path.join(summary_dir, '%s_response_counts.csv' % self.nb_name_stem)
+        output_file = os.path.join(
+            summary_dir, '%s_response_counts.csv' % self.nb_name_stem)
 
         df = pd.DataFrame(
-            data=[[u in prompt.answers for u in self.usernames] for prompt in self.question_prompts],
-            columns=[self.gh_username_to_fullname(name) for name in self.usernames],
-        )
+            data=[[u in prompt.answers for u in self.usernames]
+                  for prompt in self.question_prompts],
+            columns=[
+                self.gh_username_to_fullname(name) for name in self.usernames
+            ], )
         df.index = [prompt.name for prompt in self.question_prompts]
         df.sort_index(axis=1, inplace=True)
         df.insert(0, 'Total', df.sum(axis=1))
-        df = pd.concat([df, pd.DataFrame(df.sum(axis=0).astype(int), columns=['Total']).T])
+        df = pd.concat([
+            df, pd.DataFrame(df.sum(axis=0).astype(int), columns=['Total']).T
+        ])
 
         print("Writing", output_file)
         print('Answer counts:')
@@ -272,18 +312,28 @@ class NotebookExtractor(object):
 
     def write_poll_results(self):
         def user_response_text(username):
-            return NotebookUtils.cell_list_text(prompt.answers.get(username, []))
+            return NotebookUtils.cell_list_text(
+                prompt.answers.get(username, []))
 
-        poll_questions = [prompt for prompt in self.question_prompts if prompt.is_poll]
+        poll_questions = [
+            prompt for prompt in self.question_prompts if prompt.is_poll
+        ]
         for prompt in poll_questions:
-            slug = prompt.name.strip(' .' + string.digits).replace(' ', '_').lower()
-            output_file = os.path.join(summary_dir, '%s_%s.csv' % (self.nb_name_stem, slug))
-            print("Writing %s: poll results for %s" % (output_file, prompt.name))
+            slug = prompt.name.strip(' .' + string.digits).replace(
+                ' ', '_').lower()
+            output_file = os.path.join(summary_dir,
+                                       '%s_%s.csv' % (self.nb_name_stem, slug))
+            print("Writing %s: poll results for %s" % (output_file,
+                                                       prompt.name))
 
             os.makedirs(os.path.dirname(output_file), exist_ok=True)
-            df = pd.DataFrame([user_response_text(user_id) for user_id in self.usernames],
-                              index=[github_id_username_dict.get(user_id, user_id) for user_id in self.usernames],
-                              columns=['Response'])
+            df = pd.DataFrame(
+                [user_response_text(user_id) for user_id in self.usernames],
+                index=[
+                    github_id_username_dict.get(user_id, user_id)
+                    for user_id in self.usernames
+                ],
+                columns=['Response'])
             df.index.name = 'Student'
             df.sort_index(axis=1, inplace=True)
             df = df[df['Response'] != '']
@@ -291,7 +341,14 @@ class NotebookExtractor(object):
 
 
 class QuestionPrompt(object):
-    def __init__(self, question_heading, start_md, stop_md, name=None, index=None, is_poll=False, is_optional=None):
+    def __init__(self,
+                 question_heading,
+                 start_md,
+                 stop_md,
+                 name=None,
+                 index=None,
+                 is_poll=False,
+                 is_optional=None):
         """Initialize a question prompt.
 
         Initialize a question prompt with the specified starting markdown (the question), and stopping
@@ -301,7 +358,8 @@ class QuestionPrompt(object):
         To omit the question heading, specify the empty string.
         """
         if is_optional is None and start_md:
-            is_optional = bool(re.search(r'optional', start_md.split('\n')[0], re.I))
+            is_optional = bool(
+                re.search(r'optional', start_md.split('\n')[0], re.I))
         self.question_heading = question_heading
         self._name = name
         self.start_md = start_md
@@ -315,9 +373,11 @@ class QuestionPrompt(object):
     @property
     def answers_without_duplicates(self):
         answers = dict(self.answers)
-        answer_strings = set()  # answers to this question, as strings; used to avoid duplicates
+        answer_strings = set(
+        )  # answers to this question, as strings; used to avoid duplicates
         for username, response_cells in self.answers.items():
-            answer_string = '\n'.join(''.join(cell['source']) for cell in response_cells).strip()
+            answer_string = '\n'.join(''.join(cell['source'])
+                                      for cell in response_cells).strip()
             if answer_string in answer_strings:
                 del answers[username]
             else:
@@ -335,7 +395,8 @@ class QuestionPrompt(object):
             (True, False): '{number}',
             (True, True): '{number}. {title}'
         }[isinstance(self.index, int), bool(m)]
-        return format_str.format(number=(self.index or 0) + 1, title=m and m.group(1))
+        return format_str.format(
+            number=(self.index or 0) + 1, title=m and m.group(1))
 
     def get_closest_match(self,
                           cells,
@@ -346,8 +407,10 @@ class QuestionPrompt(object):
         If no match is better than the matching_threshold, the empty list will be returned.
         """
         return_value = []
-        distances = [Levenshtein.distance(self.start_md, ''.join(cell['source']))
-                     for cell in cells]
+        distances = [
+            Levenshtein.distance(self.start_md, ''.join(cell['source']))
+            for cell in cells
+        ]
         if min(distances) > matching_threshold:
             return return_value
 
@@ -357,13 +420,16 @@ class QuestionPrompt(object):
         elif len(self.stop_md) == 0:
             end_offset = len(cells) - best_match
         else:
-            distances = [Levenshtein.distance(self.stop_md, ''.join(cell['source']))
-                         for cell in cells[best_match:]]
+            distances = [
+                Levenshtein.distance(self.stop_md, ''.join(cell['source']))
+                for cell in cells[best_match:]
+            ]
             if min(distances) > matching_threshold:
                 return return_value
             end_offset = argmin(distances)
         if len(self.question_heading) != 0 and not suppress_non_answer_cells:
-            return_value.append(NotebookUtils.markdown_heading_cell(self.question_heading, 2))
+            return_value.append(
+                NotebookUtils.markdown_heading_cell(self.question_heading, 2))
         if not suppress_non_answer_cells:
             return_value.append(cells[best_match])
         return_value.extend(cells[best_match + 1:best_match + end_offset])
@@ -391,11 +457,11 @@ class NotebookUtils(object):
 # Read the notebooks; do the work
 #
 
-student_notebooks = list(filter(
-    None.__ne__,
-    (safe_read_notebook(path, owner=file_owner_from_path(path), clear_outputs=CLEAR_OUTPUTS)
-     for path in glob(os.path.join(repos_download_dir, '*', nb_name))
-     if file_owner_from_path(path) != ORIGIN_DIRNAME)))
+student_notebooks = list(
+    filter(None.__ne__, (safe_read_notebook(
+        path, owner=file_owner_from_path(path), clear_outputs=CLEAR_OUTPUTS
+    ) for path in glob(os.path.join(repos_download_dir, '*', nb_name))
+                         if file_owner_from_path(path) != ORIGIN_DIRNAME)))
 
 nbe = NotebookExtractor(origin_notebook, student_notebooks)
 nbe.extract()
