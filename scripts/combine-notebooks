@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 This script is designed to support active reading.  It takes as input
 a set of ipython notebook as well as some target cells which define a set
