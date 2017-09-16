@@ -1,4 +1,4 @@
-f.# Olin Computing Assignment Tools
+# Olin Computing Assignment Tools
 
 This repository contains tools for collecting and processing projects and assignments,
 mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), [Jupyter notebooks](http://jupyter.org).
@@ -179,6 +179,18 @@ Given a SCOPE Peer and Self review spreadsheet, create an HTML report organized 
 ## Contributing
 
 Some things to work on are listed [here](https://github.com/olin-computing/classroom-tools/issues).
+
+### Setting up a development environment
+
+`pip install -r requirements-dev.txt`
+
+To test in new conda environment:
+
+```bash
+$ conda create --name classroom-tools python=3.5 pip
+$ source activate classroom-tools
+$ pip install -r requirements-dev.txt 
+```
 
 ### Style
 
