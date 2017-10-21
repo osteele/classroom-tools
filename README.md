@@ -102,6 +102,8 @@ Clone the forks of a repo.
 With the `--classroom` option, the script clones the repos `org_name/repo_name-$login` in the `org_name` account.
 This is the format of repos created by GitHub Classroom.
 
+I no longer use this script. [multiclone](https://github.com/osteele/multiclone) is an alternate golang implementation, that clones the repos in parallel.
+
 #### Download Forked Files
 
 `./scripts/download-repo-fork-files REPO_NAME`
