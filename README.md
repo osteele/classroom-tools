@@ -176,6 +176,10 @@ This script expects a directory structure created by the `download-repo-fork-fil
 This script is derived from,
 and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
 
+The version in this directory is not the latest, and is not under active development here.
+The [nbcollate package](https://github.com/olin-computing/nbcollate) is the successor.
+`pip install nbcollate` to install this package, and the `nbcollate` command-line tool.
+
 A web application with similar functionality is at [olin-computing/assignment-dashboard](https://github.com/olin-computing/assignment-dashboard).
 That application caches the state of GitHub into a local **sqlite3** store, and provides a web interface for inspect completion status by student or by question and for browsing the original and collated notebooks.
 
@@ -255,8 +259,6 @@ application. The current style may not be compatible with that.
 
 `combine-notebooks.py` is derived from a script by
 Paul Ruvolo at Olin [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
-An intermediate version is at [osteele/assignment-tools](https://github.com/osteele/assignment-tools).
-The [nbcollate package](https://github.com/olin-computing/nbcollate) is a successor. The command-line tool in this repository may eventually be changed to use that package.
 
 `create-enrollment-flashcards` is based on an idea by Ben Hill at Olin.
 His code was simpler and cleaner but I added more functionality (nicknames, HTML generation) before I saw his,
