@@ -21,9 +21,12 @@ $ git clone https://github.com/olin-computing/classroom-tools.git
 
 ### 2. Install Python
 
-Install Python 3.5 or greater. [Lesser versions of Python 3 will likely work but are untested. Python 2 is right out.]
+Install Python 3.5 or greater. [Lesser versions of Python 3 will likely work, but are untested. Python 2.x is right out.]
 
-To check whether Python 3.5 is installed, execute `python3 --version`, and verify the output version:
+Testing whether Python 3.5 is installed:
+
+1. Execute `python3 --version`,
+2. Verify the output version:
 
 ```bash
 $ python3 --version
@@ -34,23 +37,28 @@ An easy way to install Python is to follow the [install instructions for Anacond
 
 ### 3. Install required Python packages
 
-    $ pip3 install -r requirements.txt
+ ```bash
+pip3 install -r requirements.txt
+ ```
 
-Depending on how Python is installed, you may need to prefix `pip3 install …` by `sudo`.
+Depending on how Python is installed, you may need this instead:
+
+ ```bash
+ sudo pip3 install -r requirements.txt
+ ```
 
 ### 4. [Optional] Retrieve a GitHub personal API token
 
 Some of these scripts use GitHub's API.
 
 GitHub limits the rate at which a particular machine can make API calls.
-
 If you repeatedly run these scripts on a repo with many forks, you may run into these limits.
 (You may also run into them if you work on developing the scripts.)
 
-You will also need a personal API token in order to access any private repositories, which is common with
-[GitHub Classroom](https://classroom.github.com).
+You will also need a personal API token in order to access any private repositories.
+You will need this for use with [GitHub Classroom](https://classroom.github.com).
 
-To increase the limit, [create a personal GitHub API token](https://github.com/blog/1509-personal-api-tokens)
+To increase the limit, [create a personal GitHub API token](https://github.com/blog/1509-personal-api-tokens),
 and set the `GITHUB_API_TOKEN` environment variable to this value.
 
 For example, my macOS and Ubuntu shells are set to **zsh**, so my startup files include `~/.zshenv`.
@@ -62,7 +70,7 @@ My `~/.zshenv` includes this line (where `xxxxxxxx` is my personal GitHub API to
 
 ### General Usage
 
-The repository consists of a number of Python scripts, in the `scripts` directory.
+The repository consists of a number of Python scripts in the `scripts` directory.
 
 Invoke a script with `--help` to see options that aren't listed below.
 
@@ -81,17 +89,33 @@ These subdirectories are not committed to the repository.
 
 ### GitHub Tools
 
-#### Download Forks
+#### Clone Forks
+
+`./scripts/clone-repo-forks REPO_NAME`
+
+`./scripts/clone-repo-forks --classroom REPO_NAME`
+
+Clone the forks of a repo.
+
+`REPO_NAME` is in `org_name/repo_name` format.
+
+With the `--classroom` option, the script clones the repos `org_name/repo_name-$login` in the `org_name` account.
+This is the format of repos created by GitHub Classroom.
+
+#### Download Forked Files
 
 `./scripts/download-repo-fork-files REPO_NAME`
 
 `./scripts/download-repo-fork-files --classroom REPO_NAME`
 
-Download all the forks of a repo. Suitable for collecting assignments.
-
-With the `--classroom` option, the script downloads repos `org_name/repo_name-$login` in the same account. (This is the format of repos created by GitHub Classroom.)
+Download a repo's forks' modified files.
+(Files whose contents are different from the source repo.)
+This is suitable for collecting assignments, and quickly inspecting which files have changed.
 
 Only files that are different from the version in the origin repository are downloaded.
+
+With the `--classroom` option, the script downloads repos `org_name/repo_name-$login` in the `org_name` account.
+This is the format of repos created by GitHub Classroom.
 
 This script also omits repos that belong to members of *org_name*.
 
@@ -230,10 +254,10 @@ application. The current style may not be compatible with that.
 `combine-notebooks.py` is derived from a script by
 Paul Ruvolo at Olin [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
 An intermediate version is at [osteele/assignment-tools](https://github.com/osteele/assignment-tools).
-The [nbcollate package](https://github.com/olin-computing/nbcollate) is a successory. The command-line tool in this repository may eventually be changed to use that package.
+The [nbcollate package](https://github.com/olin-computing/nbcollate) is a successor. The command-line tool in this repository may eventually be changed to use that package.
 
 `create-enrollment-flashcards` is based on an idea by Ben Hill at Olin.
-His code was better but I added more functionality (nicknames, HTML generation) before I saw his,
+His code was simpler and cleaner but I added more functionality (nicknames, HTML generation) before I saw his,
 and haven't yet backed out my complexity in favor of his simplicity.
 
 ### License
