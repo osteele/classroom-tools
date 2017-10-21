@@ -15,7 +15,7 @@ The scripts in this file are still under (occasional) active development, and ar
 
 ### 1. Download this repository
 
-``` bash
+```bash
 $ git clone https://github.com/olin-computing/classroom-tools.git
 ```
 
@@ -25,7 +25,7 @@ Install Python 3.5 or greater. [Lesser versions of Python 3 will likely work but
 
 To check whether Python 3.5 is installed, execute `python3 --version`, and verify the output version:
 
-``` bash
+```bash
 $ python3 --version
 Python 3.5.2 :: Anaconda custom (x86_64)
 ```
