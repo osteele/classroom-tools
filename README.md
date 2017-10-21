@@ -1,7 +1,7 @@
 # Olin Computing Assignment Tools
 
 This repository contains tools for collecting and processing projects and assignments,
-mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), [Jupyter notebooks](http://jupyter.org).
+mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), and [Jupyter notebooks](http://jupyter.org).
 
 It also contains a smattering of other class-related tools, specific to the Olin College IT infrastructure.
 
@@ -121,7 +121,7 @@ This is the format of repos created by GitHub Classroom.
 
 This script also omits repos that belong to members of *org_name*.
 
-(Both of these are suitable for my purposes, but could easily be turned into command-line optons.)
+(Both of these are suitable for my purposes, but could easily be turned into command-line options.)
 
 This script downloads files into the directory structure:
 
@@ -219,7 +219,7 @@ To test in new conda environment:
 ```bash
 $ conda create --name classroom-tools python=3.5 pip
 $ source activate classroom-tools
-$ pip install -r requirements-dev.txt 
+$ pip install -r requirements-dev.txt
 ```
 
 ### Style
