@@ -1,0 +1,25 @@
+{
+  "name": "classroom-tools",
+  "version": "0.1.0",
+  "description": "This repository contains tools for collecting and processing projects and assignments, mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), and [Jupyter notebooks](http://jupyter.org).",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/osteele/classroom-tools.git"
+  },
+  "author": "Oliver Steele <steele@osteele.com> (https://osteele.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/osteele/classroom-tools/issues"
+  },
+  "homepage": "https://github.com/osteele/classroom-tools#readme",
+  "dependencies": {
+    "capture-website": "^0.8.0"
+  }
+}

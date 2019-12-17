@@ -158,3 +158,4 @@ ENV/
 .ropeproject
 
 # End of https://www.gitignore.io/api/linux,windows,macos,python
+node_modules/
