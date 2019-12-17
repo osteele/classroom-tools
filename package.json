@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/osteele/classroom-tools#readme",
   "dependencies": {
-    "capture-website": "^0.8.0"
+    "capture-website": "^0.8.0",
+    "yargs": "^15.0.2"
   }
 }
