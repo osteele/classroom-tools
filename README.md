@@ -1,15 +1,19 @@
-# Olin Computing Assignment Tools
+# Classroom Tools
 
-This repository contains tools for collecting and processing projects and assignments,
-mostly related to GitHub, [GitHub Classroom](https://classroom.github.com), and [Jupyter notebooks](http://jupyter.org).
+This repository contains tools for collecting and processing projects and
+assignments, mostly related to GitHub, [GitHub
+Classroom](https://classroom.github.com), and [Jupyter
+notebooks](http://jupyter.org).
 
-It also contains a smattering of other class-related tools, specific to the Olin College IT infrastructure.
+It also contains a smattering of other class-related tools, specific to the Olin
+College IT infrastructure.
 
-Report issues [here](https://github.com/olin-computing/classroom-tools/issues).
+Report issues [here](https://github.com/osteele/classroom-tools/issues).
 
 ## Status
 
-The scripts in this file are still under (occasional) active development, and are under-tested and under-documented.
+The scripts in this file are still under (occasional) active development, and
+are under-tested and under-documented.
 
 ## Setup
 
@@ -42,18 +46,21 @@ Python 3.7.5
 
 Some of these scripts use GitHub's API.
 
-GitHub limits the rate at which a particular machine can make API calls.
-If you repeatedly run these scripts on a repo with many forks, you may run into these limits.
-(You may also run into them if you work on developing the scripts.)
+GitHub limits the rate at which a particular machine can make API calls. If you
+repeatedly run these scripts on a repo with many forks, you may run into these
+limits. (You may also run into them if you work on developing the scripts.)
 
-You will also need a personal API token in order to access any private repositories.
-You will need this for use with [GitHub Classroom](https://classroom.github.com).
+You will also need a personal API token in order to access any private
+repositories. You will need this for use with [GitHub
+Classroom](https://classroom.github.com).
 
-To increase the limit, [create a personal GitHub API token](https://github.com/blog/1509-personal-api-tokens),
-and set the `GITHUB_API_TOKEN` environment variable to this value.
+To increase the limit, [create a personal GitHub API
+token](https://github.com/blog/1509-personal-api-tokens), and set the
+`GITHUB_API_TOKEN` environment variable to this value.
 
-For example, my macOS and Ubuntu shells are set to **zsh**, so my startup files include `~/.zshenv`.
-My `~/.zshenv` includes this line (where `xxxxxxxx` is my personal GitHub API token):
+For example, my macOS and Ubuntu shells are set to **zsh**, so my startup files
+include `~/.zshenv`. My `~/.zshenv` includes this line (where `xxxxxxxx` is my
+personal GitHub API token):
 
     export GITHUB_API_TOKEN=xxxxxxxx
 
@@ -61,12 +68,13 @@ My `~/.zshenv` includes this line (where `xxxxxxxx` is my personal GitHub API to
 
 ### General Usage
 
-The repository consists of a number of Python scripts in the `scripts` directory.
+The repository consists of a number of Python scripts in the `scripts`
+directory.
 
 Invoke a script with `--help` to see options that aren't listed below.
 
-The scripts assume the following directory organization.
-These subdirectories are not committed to the repository.
+The scripts assume the following directory organization. These subdirectories
+are not committed to the repository.
 
     ./
     ├── build
@@ -76,7 +84,9 @@ These subdirectories are not committed to the repository.
     └── downloads
           Scripts look here for manually downloaded files. Scripts that download files also place them here.
 
-`REPO_NAME` is a GitHub repository full name, in the format *org_name*/*short_name*. For example, this repo is `olin-computing/classroom-tools`.
+`REPO_NAME` is a GitHub repository full name, in the format
+_org_name_/_short_name_. For example, this repo is
+`olin-computing/classroom-tools`.
 
 ### GitHub Tools
 
@@ -101,18 +111,21 @@ I no longer use this script. [multiclone](https://github.com/osteele/multiclone)
 
 `./scripts/download-repo-fork-files --classroom REPO_NAME`
 
-Download a repo's forks' modified files.
-(Files whose contents are different from the source repo.)
-This is suitable for collecting assignments, and quickly inspecting which files have changed.
+Download a repo's forks' modified files. (Files whose contents are different
+from the source repo.) This is suitable for collecting assignments, and quickly
+inspecting which files have changed.
 
-Only files that are different from the version in the origin repository are downloaded.
+Only files that are different from the version in the origin repository are
+downloaded.
 
-With the `--classroom` option, the script downloads repos `org_name/repo_name-$login` in the `org_name` account.
-This is the format of repos created by GitHub Classroom.
+With the `--classroom` option, the script downloads repos
+`org_name/repo_name-$login` in the `org_name` account. This is the format of
+repos created by GitHub Classroom.
 
-This script also omits repos that belong to members of *org_name*.
+This script also omits repos that belong to members of _org_name_.
 
-(Both of these are suitable for my purposes, but could easily be turned into command-line options.)
+(Both of these are suitable for my purposes, but could easily be turned into
+command-line options.)
 
 This script downloads files into the directory structure:
 
@@ -125,7 +138,8 @@ This script downloads files into the directory structure:
 
 `./scripts/github-fork-file-modtimes REPO_NAME`
 
-Create a spreadsheet that contains the student names and file modification dates, for each file in a forked repository.
+Create a spreadsheet that contains the student names and file modification
+dates, for each file in a forked repository.
 
 #### Collate Downloaded Files
 
@@ -133,7 +147,8 @@ Create a spreadsheet that contains the student names and file modification dates
 
 Collect downloaded notebooks into a common directory.
 
-This script expects a directory structure created by the `download-repo-fork-files` script. It creates:
+This script expects a directory structure created by the
+`download-repo-fork-files` script. It creates:
 
     ./downloads/
     └── ${github_organization}-${github_repo}-combined/
@@ -143,7 +158,7 @@ This script expects a directory structure created by the `download-repo-fork-fil
             ├── …
             └── ${student${n}_github_login}.${filename_extension}
 
-The name of the repository is currently hardcoded into the script.
+The name of the repository is currently hard-coded into the script.
 
 ### Jupyter Tools
 
@@ -153,7 +168,8 @@ The name of the repository is currently hardcoded into the script.
 
 Combine notebooks into a single notebook.
 
-This script expects a directory structure created by the `download-repo-fork-files` script. It creates:
+This script expects a directory structure created by the
+`download-repo-fork-files` script. It creates:
 
     ./build/${github_organization}-${github_repo}
     ├── processed_notebooks/
@@ -164,15 +180,21 @@ This script expects a directory structure created by the `download-repo-fork-fil
         ├── …
         └── poll${n}.csv
 
-This script is derived from,
-and documented at, [osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which was in turn forked from [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
+This script is derived from, and documented at,
+[osteele/assignment-tools](https://github.com/osteele/assignment-tools) (which
+was in turn forked from
+[paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep)).
 
-The version in this directory is not the latest, and is not under active development here.
-The [nbcollate package](https://github.com/olin-computing/nbcollate) is the successor.
-`pip install nbcollate` to install this package, and the `nbcollate` command-line tool.
+The version in this directory is not the latest, and is not under active
+development here. The [nbcollate
+package](https://github.com/olin-computing/nbcollate) is the successor. `pip install nbcollate` to install this package, and the `nbcollate` command-line
+tool.
 
-A web application with similar functionality is at [olin-computing/assignment-dashboard](https://github.com/olin-computing/assignment-dashboard).
-That application caches the state of GitHub into a local **sqlite3** store, and provides a web interface for inspect completion status by student or by question and for browsing the original and collated notebooks.
+A web application with similar functionality is at
+[olin-computing/assignment-dashboard](https://github.com/olin-computing/assignment-dashboard).
+That application caches the state of GitHub into a local **sqlite3** store, and
+provides a web interface for inspect completion status by student or by question
+and for browsing the original and collated notebooks.
 
 ### Other Scripts
 
@@ -180,26 +202,28 @@ That application caches the state of GitHub into a local **sqlite3** store, and 
 
 `./scripts/create-enrollment-flashcards HTML_FILE`
 
-Generate a file and media directory suitable for consumption by [FlashCard Deluxe](http://orangeorapple.com/Flashcards/),
-from a Course Enrollment page downloaded from the Portal.
+Generate a file and media directory suitable for consumption by [FlashCard
+Deluxe](http://orangeorapple.com/Flashcards/), from a Course Enrollment page
+downloaded from the Portal.
 
 #### Create Student Contact Sheet
 
 `./scripts/create-enrollment-contact-sheet HTML_FILE`
 
-Generate HTML "contact sheet" page, that displays all the student names and faces in a grid,
-from a Course Enrollment page downloaded from the Portal.
-
+Generate HTML "contact sheet" page, that displays all the student names and
+faces in a grid, from a Course Enrollment page downloaded from the Portal.
 
 #### Summarize Scope Survey
 
 `./scripts/summarize-scope-survey CSV_FILE`
 
-Given a SCOPE Peer and Self review spreadsheet, create an HTML report organized by student.
+Given a SCOPE Peer and Self review spreadsheet, create an HTML report organized
+by student.
 
 ## Contributing
 
-Some things to work on are listed [here](https://github.com/olin-computing/classroom-tools/issues).
+Some things to work on are listed
+[here](https://github.com/olin-computing/classroom-tools/issues).
 
 ### Setting up a development environment
 
@@ -215,22 +239,30 @@ $ pip install -r requirements-dev.txt
 
 ### Style
 
-With exceptions listed in `setup.cfg`, code should conform to [PEP8](https://www.python.org/dev/peps/pep-0008/), [PEP257](https://www.python.org/dev/peps/pep-0257/), and the [Google Python Style Guide](http://google.github.io/styleguide/pyguide.html).
+With exceptions listed in `setup.cfg`, code should conform to
+[PEP8](https://www.python.org/dev/peps/pep-0008/),
+[PEP257](https://www.python.org/dev/peps/pep-0257/), and the [Google Python
+Style Guide](http://google.github.io/styleguide/pyguide.html).
 
 You can verify code against these style guides via:
 
     $ pip3 install -r requirements-dev.txt  # once
     $ flake8 scripts                        # before each commit
 
-or by setting up a [git pre-commit hook](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to run the latter command.
+or by setting up a [git pre-commit
+hook](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) to run the
+latter command.
 
-These scripts are written in a Jupyter-notebook-like style, for easy development with the [Hydrogen Atom plugin-in](https://atom.io/packages/hydrogen) and the [Python Visual Studio Code extension](https://github.com/DonJayamanne/pythonVSCode/wiki/Jupyter-(IPython)).
+These scripts are written in a Jupyter-notebook-like style, for easy development
+with the [Hydrogen Atom plugin-in](https://atom.io/packages/hydrogen) and the
+[Python Visual Studio Code
+extension](<https://github.com/DonJayamanne/pythonVSCode/wiki/Jupyter-(IPython)>).
 
 Specifically, they are light on functions and heavy on global variables.
 
-This is an experiment, and may not have legs.
-For example, it would be nice to be able to re-organize the scripts as modules,
-and invoke them as subcommands from a single CLI entry point, or make them available to a web or desktop
+This is an experiment, and may not have legs. For example, it would be nice to
+be able to re-organize the scripts as modules, and invoke them as subcommands
+from a single CLI entry point, or make them available to a web or desktop
 application. The current style may not be compatible with that.
 
 ### Directory Organization
@@ -248,12 +280,13 @@ application. The current style may not be compatible with that.
 
 ### Acknowledgements
 
-`combine-notebooks.py` is derived from a script by
-Paul Ruvolo at Olin [paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
+`combine-notebooks.py` is derived from a script by Paul Ruvolo at Olin
+[paulruvolo/SoftDesSp16Prep](https://github.com/paulruvolo/SoftDesSp16Prep).
 
-`create-enrollment-flashcards` is based on an idea by Ben Hill at Olin.
-His code was simpler and cleaner but I added more functionality (nicknames, HTML generation) before I saw his,
-and haven't yet backed out my complexity in favor of his simplicity.
+`create-enrollment-flashcards` is based on an idea by Ben Hill at Olin. His code
+was simpler and cleaner but I added more functionality (nicknames, HTML
+generation) before I saw his, and haven't yet backed out my complexity in favor
+of his simplicity.
 
 ### License
 
