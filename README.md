@@ -21,31 +21,22 @@ $ git clone https://github.com/olin-computing/classroom-tools.git
 
 ### 2. Install Python
 
-Install Python 3.5 or greater. [Lesser versions of Python 3 will likely work, but are untested. Python 2.x is right out.]
+Install Python 3.7 or greater. [Lesser versions of Python 3 will likely work, but are untested. Python 2.x is right out.]
 
-Testing whether Python 3.5 is installed:
+Testing whether Python 3.7 is installed:
 
 1. Execute `python3 --version`,
 2. Verify the output version:
 
 ```bash
 $ python3 --version
-Python 3.5.2 :: Anaconda custom (x86_64)
+Python 3.7.5
 ```
 
-An easy way to install Python is to follow the [install instructions for Anaconda](https://docs.continuum.io/anaconda/install).
+### 3. Install Poetry and packages
 
-### 3. Install required Python packages
-
- ```bash
-pip3 install -r requirements.txt
- ```
-
-Depending on how Python is installed, you may need this instead:
-
- ```bash
- sudo pip3 install -r requirements.txt
- ```
+1. Install [Poetry](https://python-poetry.org)
+2. `poetry install`
 
 ### 4. [Optional] Retrieve a GitHub personal API token
 
